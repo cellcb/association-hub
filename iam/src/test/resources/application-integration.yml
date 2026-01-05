@@ -1,0 +1,52 @@
+# 集成测试配置
+spring:
+  datasource:
+    url: jdbc:h2:mem:integration_testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  flyway:
+    enabled: false # 集成测试使用JPA DDL自动创建表
+
+# JWT配置
+jwt:
+  secret: integration-test-jwt-secret-key-for-testing-purposes-must-be-long-enough-for-HS256
+  access-token-expiration: 3600000 # 1小时
+  refresh-token-expiration: 604800000 # 7天
+  issuer: integration-test-platform
+
+# 模块Flyway配置 - 集成测试中禁用
+modules:
+  flyway:
+    iam:
+      enabled: false
+
+# 日志配置
+logging:
+  level:
+    com.waterplatform.iam: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    root: INFO
+  pattern:
+    console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+
+# 多租户配置
+waterplatform:
+  tenancy:
+    enable-bootstrap-fallback: false
+
+# 测试专用配置
+test:
+  cleanup:
+    enabled: true
+  data:
+    auto-create: true

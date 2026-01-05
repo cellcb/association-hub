@@ -1,0 +1,261 @@
+spring:
+  application:
+    name: water-platform
+  ai:
+    openai:
+      base-url: https://ark.cn-beijing.volces.com/api/v3
+      api-key: 155d5cb5-6b83-4d52-8be8-eb795c72ad44
+      chat:
+        completions-path: /chat/completions
+    chat:
+      memory:
+        jdbc:
+          # Custom table managed by project Flyway; disable default schema init.
+          initialize-schema: never
+    options:
+      model: deepseek-v3-1-250821
+      temperature: ${KB_RAG_TEMPERATURE:0.2}
+    embedding:
+      enabled: false
+  data:
+    elasticsearch:
+      repositories:
+        enabled: false
+  # Multipart file upload configuration
+  servlet:
+    multipart:
+      max-file-size: ${KB_FILE_MAX_SIZE:52428800} # 50MB
+      max-request-size: ${KB_REQUEST_MAX_SIZE:104857600} # 100MB (allows for multiple files + form data)
+      enabled: true
+      
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/assoc
+    username: ${DB_USERNAME:assoc}
+    password: ${DB_PASSWORD:assoc}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        
+  # Enable Flyway with IAM module configuration
+  flyway:
+    enabled: true
+    table: iam_flyway_schema_history
+    locations: classpath:db/migration/iam
+    baseline-on-migrate: true
+  quartz:
+    job-store-type: jdbc
+    scheduler-name: waterPlatformScheduler
+    jdbc:
+      initialize-schema: never
+    properties:
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 10000
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: sch_qrtz_
+      org.quartz.threadPool.threadCount: 10
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: on_param
+  servlet:
+    context-path: ${CONTEXT_PATH:}
+  # Tomcat configuration for large file uploads
+  tomcat:
+    max-swallow-size: ${KB_REQUEST_MAX_SIZE:104857600} # 100MB
+    max-http-form-post-size: ${KB_REQUEST_MAX_SIZE:104857600}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:water-platform-jwt-secret-key-must-be-at-least-256-bits-long-for-HS256}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:7200000} # 2 hours
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 7 days
+  issuer: ${JWT_ISSUER:water-platform}
+
+# Logging Configuration
+logging:
+  level:
+    root: ${ROOT_LOG_LEVEL:INFO}
+    com.waterplatform: ${APP_LOG_LEVEL:INFO}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:WARN}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${SQL_PARAM_LOG_LEVEL:WARN}
+    org.springframework.web: ${WEB_LOG_LEVEL:INFO}
+    org.hibernate.orm.connections.pooling: WARN
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){highlight} %clr([%logger{36}]){cyan} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  health:
+    elasticsearch-reactive:
+      enabled: false
+
+# API Documentation
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    # The UI should be reachable via /docs for convenience.
+    path: /docs
+    tags-sorter: alpha
+    operations-sorter: alpha
+  packages-to-scan: com.waterplatform
+
+# Knowledge Base Configuration
+kb:
+  file:
+    upload-path: ${KB_FILE_UPLOAD_PATH:/Users/cell/ws/tmp/waterfile}
+    max-size: ${KB_FILE_MAX_SIZE:52428800} # 50MB in bytes
+    allowed-types: pdf,doc,docx,xls,xlsx,ppt,pptx,txt
+    base-url: ${KB_FILE_BASE_URL:/api/kb/files}
+  search:
+    language: ${KB_SEARCH_LANGUAGE:simple} # or 'chinese' for Chinese support
+    max-results: ${KB_SEARCH_MAX_RESULTS:100}
+    suggestion-limit: ${KB_SUGGESTION_LIMIT:10}
+  local-indexing:
+    enabled: ${KB_LOCAL_INDEXING_ENABLED:true}
+#  indexing:
+#    enabled: ${KB_INDEXING_ENABLED:false}
+#    base-url: ${KB_INDEXING_BASE_URL:http://localhost:8000}
+#    upload-path: ${KB_INDEXING_UPLOAD_PATH:/api/documents/upload}
+#    callback-url: ${KB_INDEXING_CALLBACK_URL:http://localhost:8080/api/kb/indexing/documents/{id}/status}
+#    api-key: ${KB_INDEXING_API_KEY:}
+#    callback-token: ${KB_INDEXING_CALLBACK_TOKEN:}
+#    file-field-name: ${KB_INDEXING_FILE_FIELD:files}
+#    parallel-workers: ${KB_INDEXING_PARALLEL_WORKERS:1}
+#    tenant-header-name: ${KB_INDEXING_TENANT_HEADER:X-Tenant-ID}
+  chunking:
+    type: ${KB_CHUNKING_TYPE:sentence_window}
+    size: ${KB_CHUNKING_SIZE:400}
+    overlap: ${KB_CHUNKING_OVERLAP:50}
+    max-chunks-per-document: ${KB_CHUNKING_MAX:500}
+  embedding:
+    provider: ${KB_EMBEDDING_PROVIDER:api} # local | api
+    model: ${KB_EMBEDDING_MODEL:bge-small-zh-1.5}
+    dimension: ${KB_EMBEDDING_DIMENSION:512} # Align with the selected model output size (e.g., 384 for bge-small-zh-1.5)
+    normalize: ${KB_EMBEDDING_NORMALIZE:true}
+#    local:
+#      model-dir: ${KB_EMBEDDING_MODEL_DIR:/Users/cell/ws/project/models/}
+#      tokenizer-max-length: ${KB_EMBEDDING_TOKENIZER_MAX_LENGTH:512}
+#      model-uri: ${KB_EMBEDDING_MODEL_URI:djl://ai.djl.huggingface.pytorch/BAAI/bge-m3}
+    api:
+      base-url: ${KB_EMBEDDING_API_BASE_URL:http://localhost:8081}
+      path: ${KB_EMBEDDING_API_PATH:/v1/embeddings}
+      model: ${KB_EMBEDDING_API_MODEL:bge-small-zh-1.5}
+      connect-timeout-ms: ${KB_EMBEDDING_API_CONNECT_TIMEOUT:5000}
+      read-timeout-ms: ${KB_EMBEDDING_API_READ_TIMEOUT:30000}
+  rag:
+    model: ${KB_RAG_MODEL:deepseek-v3-1-250821}
+    top-k: ${KB_RAG_TOP_K:8}
+    max-context-chars: ${KB_RAG_CONTEXT:8000}
+    temperature: ${KB_RAG_TEMPERATURE:0.2}
+    stream-delay: ${KB_RAG_STREAM_DELAY:PT0.06S}
+  elasticsearch:
+    hosts: ${KB_ES_HOSTS:http://localhost:9200}
+    index-prefix: ${KB_ES_INDEX_PREFIX:kb_chunks_}
+    create-index-on-start: ${KB_ES_CREATE_INDEX:true}
+    indexing-analyzer: ${KB_ES_INDEX_ANALYZER:ik_max_word}
+    search-analyzer: ${KB_ES_SEARCH_ANALYZER:ik_smart}
+    shards: ${KB_ES_SHARDS:1}
+    replicas: ${KB_ES_REPLICAS:0}
+
+# System module asset storage
+system:
+  file:
+    upload-path: ${SYSTEM_FILE_UPLOAD_PATH:/Users/cell/ws/tmp/system-files}
+    base-url: ${SYSTEM_FILE_BASE_URL:/api/system/files?path=}
+    logo:
+      subdirectory: ${SYSTEM_FILE_LOGO_SUBDIR:logos}
+      max-size-bytes: ${SYSTEM_FILE_LOGO_MAX_SIZE:2097152}
+      allowed-types:
+        - png
+        - jpg
+        - jpeg
+        - svg
+    ico:
+      subdirectory: ${SYSTEM_FILE_ICO_SUBDIR:icons}
+      max-size-bytes: ${SYSTEM_FILE_ICO_MAX_SIZE:524288}
+      allowed-types:
+        - ico
+        - png
+        - svg
+
+# Application Info
+info:
+  app:
+    name: ${spring.application.name}
+    description: 智慧水利业务管理平台
+    version: 1.0.0
+    encoding: UTF-8
+    java:
+      version: ${java.version}
+scheduler:
+  retry:
+    max-attempts: ${SCHEDULER_MAX_RETRIES:3}
+    interval: ${SCHEDULER_RETRY_INTERVAL:PT60S}
+
+notification:
+  email:
+    enabled: ${NOTIFICATION_EMAIL_ENABLED:true}
+  sms:
+    enabled: ${NOTIFICATION_SMS_ENABLED:false}
+  wechat:
+    enabled: ${NOTIFICATION_WECHAT_ENABLED:false}
+  in-app:
+    enabled: ${NOTIFICATION_INAPP_ENABLED:true}
+
+audit:
+  mask-keys:
+    - password
+    - secret
+    - token
+    - access_token
+    - refresh_token
+    - authorization
+    - api_key
+    - apikey
+    - client_secret
+    - oldPassword
+    - newPassword
+    - confirmPassword
+    - credential
+  parameter-max-length: ${AUDIT_PARAM_MAX_LENGTH:4000}
+  retention-days: ${AUDIT_RETENTION_DAYS:180}
+  retention-cron: ${AUDIT_RETENTION_CRON:0 30 3 * * *}
+  async:
+    core-pool-size: ${AUDIT_ASYNC_CORE_SIZE:2}
+    max-pool-size: ${AUDIT_ASYNC_MAX_SIZE:4}
+    queue-capacity: ${AUDIT_ASYNC_QUEUE:500}

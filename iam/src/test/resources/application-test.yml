@@ -1,0 +1,36 @@
+# Test Configuration for IAM Module
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+    
+  flyway:
+    enabled: false # 禁用Flyway，使用JPA自动创建表
+
+# JWT Test Configuration
+jwt:
+  secret: test-jwt-secret-key-for-testing-purposes-must-be-long-enough
+  access-token-expiration: 3600000 # 1 hour for testing
+  refresh-token-expiration: 7200000 # 2 hours for testing
+  issuer: test-platform
+
+# Module Flyway Test Configuration (disabled)
+modules:
+  flyway:
+    iam:
+      enabled: false
+
+# Logging for Tests
+logging:
+  level:
+    com.waterplatform.iam: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.test: DEBUG

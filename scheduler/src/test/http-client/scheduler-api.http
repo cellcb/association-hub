@@ -1,0 +1,193 @@
+### Scheduler 模块 API 测试
+### 使用 http-client.env.json 中的 dev/test/prod 变量
+
+
+### 获取访问令牌
+POST {{baseUrl}}/api/iam/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.global.set("token", response.body.data.accessToken);
+%}
+
+### ===== 调度策略接口 =====
+
+### 创建策略（每天 08:30 执行 - CRON）
+# @name createDailyStrategy
+POST {{baseUrl}}/api/scheduler/strategies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "每日 08:30 执行",
+  "description": "用于每日汇总任务",
+  "scheduleType": "CRON",
+  "cronExpression": "0 30 8 * * ?",
+  "excludedDates": ["2025-02-01", "2025-02-02"]
+}
+
+> {% client.global.set("dailyStrategyId", response.body.data.id); %}
+
+### 创建策略（每 5 分钟固定间隔 - CRON）
+# @name createFixedRateStrategy
+POST {{baseUrl}}/api/scheduler/strategies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "每5分钟采集",
+  "description": "定期触发采集作业",
+  "scheduleType": "CRON",
+  "cronExpression": "0 0/5 * * * ?"
+}
+
+> {% client.global.set("fixedStrategyId", response.body.data.id); %}
+
+### 创建策略（每月1日 02:00 执行 - CRON）
+# @name createMonthlyStrategy
+POST {{baseUrl}}/api/scheduler/strategies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "每月1日2点执行",
+  "description": "按月执行示例",
+  "scheduleType": "CRON",
+  "cronExpression": "0 0 2 1 * ?"
+}
+
+> {% client.global.set("monthlyStrategyId", response.body.data.id); %}
+
+### 创建策略（一次性运行 - 指定时间的 cron）
+# @name createOneTimeStrategy
+POST {{baseUrl}}/api/scheduler/strategies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "一次性运行示例",
+  "description": "只在2025-11-17 11:20触发一次",
+  "scheduleType": "CRON",
+  "cronExpression": "0 30 10 25 2 ? 2025"
+}
+
+> {% client.global.set("oneTimeStrategyId", response.body.data.id); %}
+
+### 查询策略列表
+GET {{baseUrl}}/api/scheduler/strategies
+Authorization: Bearer {{token}}
+
+
+### 更新策略排除日
+# @name updateExcludedDates
+PUT {{baseUrl}}/api/scheduler/strategies/{{dailyStrategyId}}/excluded-dates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[
+  "2025-02-09",
+  "2025-02-10"
+]
+
+### ===== 作业管理接口 =====
+
+### 创建 HTTP 作业
+# @name createHttpJob
+POST {{baseUrl}}/api/scheduler/jobs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "回调通知作业",
+  "jobType": "HTTP",
+  "jobConfig": "{ \"url\": \"https://example.internal/hooks\", \"method\": \"POST\", \"headers\": {\"X-App-Token\": \"demo\"}, \"body\": \"{\\\"tenantId\\\":{{tenantId}}}\" }",
+  "scheduleStrategyId": {{fixedStrategyId}},
+  "enabled": true
+}
+
+> {% client.global.set("httpJobId", response.body.data.id); %}
+
+### 创建 COMMAND 作业
+# @name createCommandJob
+POST {{baseUrl}}/api/scheduler/jobs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "列出用户主目录文件",
+  "jobType": "COMMAND",
+  "jobConfig": "{ \"command\": \"bash ls ~\", \"timeoutSeconds\": 60 }",
+  "scheduleStrategyId": {{fixedStrategyId}},
+  "enabled": true
+}
+
+> {% client.global.set("commandJobId", response.body.data.id); %}
+
+### 创建 INTERNAL_SERVICE 作业（示例：触发知识库重建索引）
+# @name createInternalServiceJob
+POST {{baseUrl}}/api/scheduler/jobs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "知识库重建索引",
+  "jobType": "INTERNAL_SERVICE",
+  "jobConfig": "{ \"handlerKey\": \"kbReindex\", \"parameters\": {\"batchSize\": 200, \"fullRebuild\": true} }",
+  "scheduleStrategyId": {{fixedStrategyId}},
+  "enabled": true
+}
+
+### 获取作业列表
+GET {{baseUrl}}/api/scheduler/jobs
+Authorization: Bearer {{token}}
+
+
+### 启用 COMMAND 作业
+POST {{baseUrl}}/api/scheduler/jobs/{{commandJobId}}/enable
+Authorization: Bearer {{token}}
+
+
+### 禁用 HTTP 作业
+POST {{baseUrl}}/api/scheduler/jobs/4/disable
+Authorization: Bearer {{token}}
+
+
+### ===== 执行日志 =====
+
+### 查询所有执行日志（可加 jobId/status 查询参数）
+GET {{baseUrl}}/api/scheduler/logs?jobId=4
+Authorization: Bearer {{token}}
+
+
+### 查看单个策略详情
+GET {{baseUrl}}/api/scheduler/strategies/{{dailyStrategyId}}
+Authorization: Bearer {{token}}
+
+
+### 更新策略名称及描述
+PUT {{baseUrl}}/api/scheduler/strategies/{{dailyStrategyId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "每日 08:30 汇总任务（更新）",
+  "description": "更新描述，依然每日 08:30 执行",
+  "scheduleType": "DAILY",
+  "startTime": "2025-01-01T08:30:00",
+  "timeZone": "Asia/Shanghai",
+  "excludedDates": ["2025-02-15"]
+}
+
+### 获取某策略的排除日期
+GET {{baseUrl}}/api/scheduler/strategies/{{dailyStrategyId}}/excluded-dates
+Authorization: Bearer {{token}}
+
+
+### 删除固定间隔策略（需先解绑作业）
+DELETE {{baseUrl}}/api/scheduler/strategies/{{fixedStrategyId}}
+Authorization: Bearer {{token}}

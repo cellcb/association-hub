@@ -1,0 +1,138 @@
+### User Department Relationship API Tests
+
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@userId = 1
+@departmentId = 2
+
+# 1. Login first (required for authorization)
+POST {{iamBase}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+> {%
+client.test("Login success", () => {
+    client.assert(response.status === 200, "Login should return 200");
+    client.global.set("token", response.body.data.accessToken);
+});
+%}
+
+###
+# 2. Create relationship via request payload
+POST {{iamBase}}/users/{{userId}}/departments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "departmentId": {{departmentId}},
+  "position": "软件工程师",
+  "isPrimary": true,
+  "status": 1
+}
+
+###
+# 3. Assign the same user to another department via path variable
+POST {{iamBase}}/users/{{userId}}/departments/{{departmentId}}?position=解决方案顾问&isPrimary=false
+Authorization: Bearer {{token}}
+
+###
+# 4. Get user departments / active / primary
+GET {{iamBase}}/users/{{userId}}/departments
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/users/{{userId}}/departments/active
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/users/{{userId}}/departments/primary
+Authorization: Bearer {{token}}
+
+###
+# 5. Update primary department selection
+PUT {{iamBase}}/users/{{userId}}/departments/{{departmentId}}/primary
+Authorization: Bearer {{token}}
+
+###
+# 6. Transfer user to another department
+POST {{iamBase}}/users/{{userId}}/departments/transfer?fromDepartmentId={{departmentId}}&toDepartmentId=3&position=高级工程师
+Authorization: Bearer {{token}}
+
+###
+# 7. Update relationship by ID
+PUT {{iamBase}}/user-departments/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "position": "资深工程师",
+  "status": 1,
+  "isPrimary": true
+}
+
+###
+# 8. Department level queries
+GET {{iamBase}}/departments/{{departmentId}}/users
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/departments/{{departmentId}}/users/active
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/departments/{{departmentId}}/positions/软件工程师/users
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/departments/{{departmentId}}/users/count
+Authorization: Bearer {{token}}
+
+###
+GET {{iamBase}}/departments/{{departmentId}}/tree/users
+Authorization: Bearer {{token}}
+
+###
+# 9. Existence checks
+GET {{iamBase}}/users/{{userId}}/departments/{{departmentId}}/exists
+Authorization: Bearer {{token}}
+
+###
+# 10. Batch create relationships
+POST {{iamBase}}/user-departments/batch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "relationships": [
+    {
+      "userId": 2,
+      "departmentId": {{departmentId}},
+      "position": "BA",
+      "isPrimary": false
+    },
+    {
+      "userId": 3,
+      "departmentId": 3,
+      "position": "QA",
+      "isPrimary": true
+    }
+  ],
+  "overrideExisting": false
+}
+
+###
+# 11. Cleanup helpers
+DELETE {{iamBase}}/users/{{userId}}/departments/{{departmentId}}
+Authorization: Bearer {{token}}
+
+###
+DELETE {{iamBase}}/user-departments/1
+Authorization: Bearer {{token}}
+
+###
+POST {{iamBase}}/user-departments/process-expired
+Authorization: Bearer {{token}}

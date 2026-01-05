@@ -1,0 +1,481 @@
+### 认证管理 API 测试 - IntelliJ IDEA HTTP Client
+### 基础配置
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@contentType = {{contentType}}
+@accessToken = {{accessToken}}
+@refreshToken = {{refreshToken}}
+
+###############################################################################
+### 认证管理 API 测试
+###############################################################################
+
+### 1. 用户登录 - 管理员账户
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "123456",
+}
+
+> {%
+client.test("Login successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Login failed");
+    client.assert(response.body.data.token, "Token not found");
+    client.assert(response.body.data.refreshToken, "Refresh token not found");
+    
+    // 保存token用于后续请求
+    client.global.set("accessToken", response.body.data.token);
+    client.global.set("refreshToken", response.body.data.refreshToken);
+});
+%}
+
+###
+
+### 2. 用户登录 - 普通用户账户
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "testuser",
+  "password": "password1234",
+  "tenantId": 1
+}
+
+> {%
+client.test("User login", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    if (response.body.success) {
+        client.global.set("userToken", response.body.data.token);
+    }
+});
+%}
+
+###
+
+### 3. 用户登录 - 错误用户名
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "nonexistent",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("Login with wrong username", function() {
+    client.assert(response.status === 401, "Should return 401 for wrong username");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 4. 用户登录 - 错误密码
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "wrongpassword",
+  "tenantId": 1
+}
+
+> {%
+client.test("Login with wrong password", function() {
+    client.assert(response.status === 401, "Should return 401 for wrong password");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 5. 用户登录 - 空用户名
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("Login with empty username", function() {
+    client.assert(response.status === 400, "Should return 400 for empty username");
+});
+%}
+
+###
+
+### 6. 用户登录 - 空密码
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "",
+  "tenantId": 1
+}
+
+> {%
+client.test("Login with empty password", function() {
+    client.assert(response.status === 400, "Should return 400 for empty password");
+});
+%}
+
+###
+
+### 7. 令牌验证 - 有效令牌
+GET {{iamBase}}/auth/validate
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Validate valid token", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Token validation failed");
+    client.assert(response.body.data === true, "Token should be valid");
+});
+%}
+
+###
+
+### 8. 令牌验证 - 无效令牌
+GET {{iamBase}}/auth/validate
+Authorization: Bearer invalid_token_here
+
+> {%
+client.test("Validate invalid token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid token");
+    client.assert(response.body.success === false, "Should indicate validation failure");
+});
+%}
+
+###
+
+### 9. 令牌验证 - 缺少令牌
+GET {{iamBase}}/auth/validate
+
+> {%
+client.test("Validate without token", function() {
+    client.assert(response.status === 400, "Should return 400 when token is missing");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 10. 获取用户信息 - 有效令牌
+GET {{iamBase}}/auth/userinfo
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get user info with valid token", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get user info failed");
+    client.assert(response.body.data.username, "Username not found");
+    client.assert(response.body.data.email, "Email not found");
+    client.assert(response.body.data.roles, "Roles not found");
+    client.assert(response.body.data.permissions, "Permissions not found");
+});
+%}
+
+###
+
+### 11. 获取用户信息 - 无效令牌
+GET {{iamBase}}/auth/userinfo
+Authorization: Bearer invalid_token_here
+
+> {%
+client.test("Get user info with invalid token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid token");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 12. 获取用户信息 - 缺少令牌
+GET {{iamBase}}/auth/userinfo
+
+> {%
+client.test("Get user info without token", function() {
+    client.assert(response.status === 400, "Should return 400 when token is missing");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 13. 刷新令牌 - 有效刷新令牌
+POST {{iamBase}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+client.test("Refresh token with valid refresh token", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Token refresh failed");
+    client.assert(response.body.data.token, "New access token not found");
+    client.assert(response.body.data.refreshToken, "New refresh token not found");
+    
+    // 更新token
+    client.global.set("accessToken", response.body.data.token);
+    client.global.set("refreshToken", response.body.data.refreshToken);
+});
+%}
+
+###
+
+### 14. 刷新令牌 - 无效刷新令牌
+POST {{iamBase}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "invalid_refresh_token_here"
+}
+
+> {%
+client.test("Refresh token with invalid refresh token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid refresh token");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 15. 刷新令牌 - 空刷新令牌
+POST {{iamBase}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": ""
+}
+
+> {%
+client.test("Refresh token with empty refresh token", function() {
+    client.assert(response.status === 400, "Should return 400 for empty refresh token");
+    client.assert(response.body.success === false, "Should indicate failure");
+    client.assert(response.body.message === "Refresh token 不能为空", "Should have specific error message");
+});
+%}
+
+###
+
+### 16. 刷新令牌 - 缺少refreshToken字段
+POST {{iamBase}}/auth/refresh
+Content-Type: {{contentType}}
+
+{}
+
+> {%
+client.test("Refresh token without refreshToken field", function() {
+    client.assert(response.status === 400, "Should return 400 when refreshToken field is missing");
+});
+%}
+
+###
+
+### 17. 用户登出
+POST {{iamBase}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("User logout", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Logout failed");
+});
+%}
+
+###
+
+### 18. 用户登出 - 无令牌
+POST {{iamBase}}/auth/logout
+
+> {%
+client.test("Logout without token", function() {
+    client.assert(response.status === 200, "Should still return 200 for logout without token");
+    client.assert(response.body.success === true, "Logout should succeed even without token");
+});
+%}
+
+###
+
+### 19. 测试CORS - OPTIONS预检请求
+OPTIONS {{iamBase}}/auth/login
+Origin: http://localhost:3000
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type
+
+> {%
+client.test("CORS preflight request", function() {
+    client.assert(response.status === 200, "CORS preflight should return 200");
+    client.assert(response.headers.valueOf("Access-Control-Allow-Origin"), "CORS origin header should be present");
+});
+%}
+
+###
+
+### 20. 测试不支持的HTTP方法
+GET {{iamBase}}/auth/login
+
+> {%
+client.test("Unsupported HTTP method", function() {
+    client.assert(response.status === 405, "Should return 405 for unsupported method");
+});
+%}
+
+###
+
+### 21. 测试不存在的路径
+GET {{iamBase}}/auth/nonexistent
+
+> {%
+client.test("Non-existent path", function() {
+    client.assert(response.status === 404, "Should return 404 for non-existent path");
+});
+%}
+
+###
+
+### 22. 测试无效JSON
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{invalid json}
+
+> {%
+client.test("Invalid JSON body", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid JSON");
+});
+%}
+
+###
+
+### 23. 测试缺少Content-Type
+POST {{iamBase}}/auth/login
+
+{
+  "username": "admin",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("Missing Content-Type header", function() {
+    client.assert(response.status === 415, "Should return 415 for missing Content-Type");
+});
+%}
+
+###
+
+### 24. 健康检查
+GET {{baseUrl}}/actuator/health
+
+> {%
+client.test("Health check", function() {
+    client.assert(response.status === 200, "Health check should return 200");
+    client.assert(response.body.status === "UP", "Application should be UP");
+});
+%}
+
+###
+
+### 25. API文档访问
+GET {{baseUrl}}/docs
+
+> {%
+client.test("Swagger UI access", function() {
+    client.assert(response.status === 200, "Swagger UI should be accessible");
+});
+%}
+
+###
+
+### 26. 压力测试 - 并发登录
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "123456",
+  "tenantId": 1
+}
+
+###
+
+### 27. 测试长用户名
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "very_long_username_that_exceeds_normal_limits_and_should_be_handled_properly_by_the_system",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("Long username", function() {
+    client.assert(response.status === 401, "Should return 401 for non-existent long username");
+});
+%}
+
+###
+
+### 28. 测试特殊字符用户名
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "user@#$%^&*()",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("Special characters in username", function() {
+    client.assert(response.status === 401, "Should return 401 for non-existent username with special characters");
+});
+%}
+
+###
+
+### 29. 测试SQL注入尝试
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("SQL injection attempt", function() {
+    client.assert(response.status === 401, "Should return 401 and not be vulnerable to SQL injection");
+});
+%}
+
+###
+
+### 30. 测试XSS尝试
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "<script>alert('xss')</script>",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+client.test("XSS attempt", function() {
+    client.assert(response.status === 401, "Should return 401 and not be vulnerable to XSS");
+});
+%}

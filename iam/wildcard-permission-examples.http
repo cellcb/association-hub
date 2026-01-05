@@ -1,0 +1,107 @@
+### 通配符权限配置示例和测试
+
+### 权限配置示例：
+
+### 1. 精确匹配 - 只匹配确切路径
+# 权限配置: resource = "/api/iam/users", action = "GET" 
+# 只匹配: GET /api/iam/users
+# 不匹配: GET /api/iam/users/123
+
+### 2. 单级通配符 * - 匹配一个路径段
+# 权限配置: resource = "/api/iam/users/*", action = "GET"
+# 匹配: GET /api/iam/users/123
+# 匹配: GET /api/iam/users/456  
+# 匹配: GET /api/iam/users/abc
+# 不匹配: GET /api/iam/users (缺少一级)
+# 不匹配: GET /api/iam/users/123/profile (多了一级)
+
+### 3. 多级通配符 ** - 匹配任意多级路径
+# 权限配置: resource = "/api/iam/users/**", action = "GET"
+# 匹配: GET /api/iam/users/123
+# 匹配: GET /api/iam/users/123/profile
+# 匹配: GET /api/iam/users/123/profile/avatar
+# 匹配: GET /api/iam/users/search/advanced
+# 不匹配: GET /api/iam/users (不包含基础路径)
+
+### 4. 混合通配符使用
+# 权限配置: resource = "/api/iam/*/management/**", action = "GET"
+# 匹配: GET /api/user/management/list
+# 匹配: GET /api/role/management/permissions/view
+# 匹配: GET /api/dept/management/tree/nodes
+# 不匹配: GET /api/user/list (缺少management段)
+
+### 实际权限配置建议：
+
+### 管理类接口 - 使用多级通配符
+POST http://localhost:8080/api/iam/permissions/config
+Authorization: Bearer {{admin_jwt_token}}
+Content-Type: application/json
+
+{
+  "name": "用户管理全权限",
+  "code": "USER_MANAGEMENT_ALL",
+  "resource": "/api/iam/users/**",
+  "action": "*",
+  "description": "用户管理的所有操作权限（所有HTTP方法，所有子路径）"
+}
+
+### 查询类接口 - 使用单级通配符
+POST http://localhost:8080/api/iam/permissions/config
+Authorization: Bearer {{admin_jwt_token}}
+Content-Type: application/json
+
+{
+  "name": "用户详情查询",
+  "code": "USER_DETAIL_READ", 
+  "resource": "/api/iam/users/*",
+  "action": "GET",
+  "description": "查询单个用户详情（如/api/iam/users/123）"
+}
+
+### 精确控制 - 不使用通配符
+POST http://localhost:8080/api/iam/permissions/config
+Authorization: Bearer {{admin_jwt_token}}
+Content-Type: application/json
+
+{
+  "name": "用户列表查询",
+  "code": "USER_LIST_READ",
+  "resource": "/api/iam/users",
+  "action": "GET", 
+  "description": "查询用户列表（精确匹配/api/iam/users）"
+}
+
+### 测试不同通配符模式的匹配效果：
+
+### 测试精确匹配 - 应该匹配
+GET http://localhost:8080/api/iam/users
+Authorization: Bearer {{admin_jwt_token}}
+
+### 测试单级通配符匹配 - 应该匹配 /api/iam/users/*
+GET http://localhost:8080/api/iam/users/123  
+Authorization: Bearer {{admin_jwt_token}}
+
+### 测试多级通配符匹配 - 应该匹配 /api/iam/users/**
+GET http://localhost:8080/api/iam/users/123/profile
+Authorization: Bearer {{admin_jwt_token}}
+
+### 实际使用场景：
+
+### RESTful API权限配置
+# 用户资源的CRUD操作
+# GET    /api/iam/users        - 列表查询（精确匹配）
+# GET    /api/iam/users/*      - 详情查询（单级通配符）  
+# POST   /api/iam/users        - 创建用户（精确匹配）
+# PUT    /api/iam/users/*      - 更新用户（单级通配符）
+# DELETE /api/iam/users/*      - 删除用户（单级通配符）
+# GET    /api/iam/users/*/profile - 用户档案（单级通配符）
+
+### 模块化权限配置  
+# /api/system/**    - 系统管理模块所有接口
+# /api/monitor/**   - 监控模块所有接口
+# /api/report/**    - 报表模块所有接口
+
+### 权限级别配置
+# /api/admin/**     - 管理员专用接口
+# /api/public/**    - 公开接口（通常在排除列表中）
+# /api/*/read-only  - 所有模块的只读接口

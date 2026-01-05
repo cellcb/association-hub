@@ -1,0 +1,130 @@
+### 用户管理API测试文件
+
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+
+### 1. 登录获取accessToken
+POST {{iamBase}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+> {%
+client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 2. 创建用户
+POST {{iamBase}}/users
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "username": "testuser2",
+  "password": "password123",
+  "email": "testuser2@example.com",
+  "phone": "13800138000",
+  "realName": "测试用户",
+  "status": 1,
+  "roleIds": [4]
+}
+
+### 3. 获取所有用户（分页）
+GET {{iamBase}}/users?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+### 4. 根据ID获取用户
+GET {{iamBase}}/users/1
+Authorization: Bearer {{accessToken}}
+
+### 5. 根据用户名获取用户
+GET {{iamBase}}/users/username/admin
+Authorization: Bearer {{accessToken}}
+
+### 6. 搜索用户
+GET {{iamBase}}/users/search?keyword=admin&page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+
+### 8. 更新用户信息
+PUT {{iamBase}}/users/1
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "email": "updated@example.com",
+  "phone": "13900139000",
+  "realName": "更新后的用户",
+  "status": 1,
+}
+
+### 9. 修改用户密码
+POST {{iamBase}}/users/1/change-password
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "oldPassword": "123456",
+  "newPassword": "newPassword123",
+  "confirmPassword": "newPassword123"
+}
+
+### 10. 重置用户密码（管理员）
+POST {{iamBase}}/users/2/reset-password?newPassword=resetPassword123
+Authorization: Bearer {{accessToken}}
+
+### 11. 禁用用户
+POST {{iamBase}}/users/2/disable
+Authorization: Bearer {{accessToken}}
+
+### 12. 启用用户
+POST {{iamBase}}/users/2/enable
+Authorization: Bearer {{accessToken}}
+
+### 13. 为用户分配角色
+POST {{iamBase}}/users/2/roles
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+[2, 3]
+
+### 14. 移除用户角色
+DELETE {{iamBase}}/users/2/roles
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+[3]
+
+### 15. 检查用户名是否存在
+GET {{iamBase}}/users/check-username?username=testuser
+Authorization: Bearer {{accessToken}}
+
+### 16. 检查邮箱是否存在
+GET {{iamBase}}/users/check-email?email=test@example.com
+Authorization: Bearer {{accessToken}}
+
+### 17. 获取正常用户数量
+GET {{iamBase}}/users/count/active
+Authorization: Bearer {{accessToken}}
+
+### 18. 获取禁用用户数量
+GET {{iamBase}}/users/count/disabled
+Authorization: Bearer {{accessToken}}
+
+### 19. 根据状态获取用户数量
+GET {{iamBase}}/users/count/by-status?status=1
+Authorization: Bearer {{accessToken}}
+
+### 20. 删除用户
+DELETE {{iamBase}}/users/2
+Authorization: Bearer {{accessToken}}
+
+### 21. 查询审计日志（最近10条）
+GET {{iamBase}}/audit/logs?size=10
+Authorization: Bearer {{accessToken}}
+
+### 22. 按条件过滤审计日志（动作+时间范围）
+GET {{iamBase}}/audit/logs?action=login&size=5
+Authorization: Bearer {{accessToken}}

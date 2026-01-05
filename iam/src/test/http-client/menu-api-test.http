@@ -1,0 +1,693 @@
+### Menu Management API Tests
+### Based on HTTP_CLIENT_README.md - use http-client.env.json for environment variables
+
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+
+### 1. Login to get JWT token first
+POST {{iamBase}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456",
+  "tenantId": 1
+}
+
+> {%
+  client.test("Login successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.data.accessToken, "No access token returned");
+    
+    client.global.set("token", response.body.data.accessToken);
+  });
+%}
+
+### 2. Get complete menu tree
+GET {{iamBase}}/menus/tree
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get menu tree successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 3. Get user accessible menu tree
+GET {{iamBase}}/menus/user-menus
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get user menu tree successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 4. Get all menus (flat list)
+GET {{iamBase}}/menus
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get all menus successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 5. Get root menus
+GET {{iamBase}}/menus/roots
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get root menus successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 6. Search menus by name
+GET {{iamBase}}/menus/search?name=系统
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Search menus successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 7. Get menu by code
+GET {{iamBase}}/menus/code/SYSTEM_MANAGE
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get menu by code successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.code === "SYSTEM_MANAGE", "Menu code should be SYSTEM_MANAGE");
+  });
+%}
+
+### 8. Create new test menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "测试菜单",
+  "code": "TEST_MENU",
+  "path": "/test",
+  "icon": "test",
+  "component": "Test/index",
+  "menuType": "MENU",
+  "sortOrder": 99,
+  "status": 1,
+  "external": false,
+  "cache": false,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.code === "TEST_MENU", "Menu code should be TEST_MENU");
+    
+    client.global.set("test_menu_id", response.body.data.id);
+  });
+%}
+
+### 9. Create child menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "子测试菜单",
+  "code": "TEST_CHILD_MENU",
+  "path": "/test/child",
+  "icon": "child",
+  "component": "Test/Child",
+  "parentId": {{test_menu_id}},
+  "menuType": "MENU",
+  "sortOrder": 1,
+  "status": 1,
+  "external": false,
+  "cache": true,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create child menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.parentId == client.global.get("test_menu_id"), "Parent ID should match");
+    
+    client.global.set("child_menu_id", response.body.data.id);
+  });
+%}
+
+### 10. Update menu
+PUT {{iamBase}}/menus/{{test_menu_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "更新测试菜单",
+  "code": "TEST_MENU",
+  "path": "/test-updated",
+  "icon": "test-updated",
+  "component": "Test/Updated",
+  "menuType": "MENU",
+  "sortOrder": 98,
+  "status": 1,
+  "external": false,
+  "cache": true,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Update menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.name === "更新测试菜单", "Menu name should be updated");
+    client.assert(response.body.data.cache === true, "Cache should be true");
+  });
+%}
+
+### 11. Get menu by ID
+GET {{iamBase}}/menus/{{test_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get menu by ID successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.name === "更新测试菜单", "Menu name should be updated");
+  });
+%}
+
+### 12. Get children menus
+GET {{iamBase}}/menus/{{test_menu_id}}/children
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get children menus successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length > 0, "Should have at least one child menu");
+  });
+%}
+
+### 13. Check if menu code exists
+GET {{iamBase}}/menus/exists?code=TEST_MENU
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Check menu exists successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data === true, "Menu should exist");
+  });
+%}
+
+### 14. Check if menu has children
+GET {{iamBase}}/menus/{{test_menu_id}}/has-children
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Check menu has children successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data === true, "Menu should have children");
+  });
+%}
+
+### 15. Move child menu to root level (remove parent)
+PATCH {{iamBase}}/menus/{{child_menu_id}}/move
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Move menu to root successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.parentId === null, "Parent ID should be null");
+  });
+%}
+
+### 16. Move menu back to parent
+PATCH {{iamBase}}/menus/{{child_menu_id}}/move?parentId={{test_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Move menu back to parent successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.parentId == client.global.get("test_menu_id"), "Parent ID should match");
+  });
+%}
+
+### 17. Create external link menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "外部链接",
+  "code": "EXTERNAL_LINK",
+  "path": "https://www.google.com",
+  "icon": "link",
+  "menuType": "MENU",
+  "sortOrder": 100,
+  "status": 1,
+  "external": true,
+  "cache": false,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create external menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.external === true, "External should be true");
+    
+    client.global.set("external_menu_id", response.body.data.id);
+  });
+%}
+
+### 18. Create hidden menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "隐藏菜单",
+  "code": "HIDDEN_MENU", 
+  "path": "/hidden",
+  "icon": "eye-invisible",
+  "component": "Hidden/index",
+  "menuType": "MENU",
+  "sortOrder": 101,
+  "status": 1,
+  "external": false,
+  "cache": false,
+  "hidden": true,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create hidden menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.hidden === true, "Hidden should be true");
+    
+    client.global.set("hidden_menu_id", response.body.data.id);
+  });
+%}
+
+### 19. Create catalog type menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "测试目录",
+  "code": "TEST_CATALOG",
+  "path": "/test-catalog",
+  "icon": "folder",
+  "menuType": "CATALOG",
+  "sortOrder": 102,
+  "status": 1,
+  "external": false,
+  "cache": false,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create catalog menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.menuType === "CATALOG", "Menu type should be CATALOG");
+    
+    client.global.set("catalog_menu_id", response.body.data.id);
+  });
+%}
+
+### 20. Create button type menu
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "测试按钮",
+  "code": "TEST_BUTTON",
+  "icon": "button",
+  "parentId": {{catalog_menu_id}},
+  "menuType": "BUTTON",
+  "sortOrder": 1,
+  "status": 1,
+  "external": false,
+  "cache": false,
+  "hidden": false,
+  "permissionIds": []
+}
+
+> {%
+  client.test("Create button menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(response.body.data.menuType === "BUTTON", "Menu type should be BUTTON");
+    
+    client.global.set("button_menu_id", response.body.data.id);
+  });
+%}
+
+### 21. Test menu validation - duplicate code (should fail)
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "重复代码测试",
+  "code": "TEST_MENU",
+  "path": "/duplicate",
+  "menuType": "MENU"
+}
+
+> {%
+  client.test("Duplicate code validation", function() {
+    client.assert(response.status === 500 || response.status === 400, "Should return error status");
+    // Note: The exact error handling depends on your global exception handler
+  });
+%}
+
+### 22. Test invalid parent ID (should fail)  
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "无效父级测试",
+  "code": "INVALID_PARENT_TEST",
+  "path": "/invalid-parent",
+  "parentId": 999999,
+  "menuType": "MENU"
+}
+
+> {%
+  client.test("Invalid parent ID validation", function() {
+    client.assert(response.status === 500 || response.status === 400, "Should return error status");
+  });
+%}
+
+### 23. Get updated menu tree (should include new menus)
+GET {{iamBase}}/menus/tree
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Updated menu tree", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    
+    // Check if our test menus are in the tree
+    const menuTree = JSON.stringify(response.body.data);
+    client.assert(menuTree.includes("TEST_MENU"), "Should contain TEST_MENU");
+  });
+%}
+
+### 24. Cleanup - Delete test menus (in reverse order to handle dependencies)
+DELETE {{iamBase}}/menus/{{button_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete button menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{catalog_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete catalog menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{hidden_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete hidden menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{external_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete external menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{child_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete child menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{permission_test_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete permission test menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+###
+DELETE {{iamBase}}/menus/{{test_menu_id}}
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Delete main test menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+  });
+%}
+
+### 25. Test menu permission management - Get menu permissions
+GET {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Get menu permissions successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+  });
+%}
+
+### 26. Add permissions to menu
+POST {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[1, 2, 3]
+
+> {%
+  client.test("Add permissions to menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### 27. Verify permissions were added
+GET {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Verify permissions added", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length >= 3, "Should have at least 3 permissions");
+  });
+%}
+
+### 28. Remove specific permissions from menu
+DELETE {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[1]
+
+> {%
+  client.test("Remove permissions from menu successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### 29. Update menu permissions (replace all)
+PUT {{iamBase}}/menus/1/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[53]
+
+> {%
+  client.test("Update menu permissions successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### 30. Verify permissions were updated
+GET {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Verify permissions updated", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 4, "Should have exactly 4 permissions");
+    
+    // Check that old permissions (1,2,3) are not present and new ones (4,5,6,7) are
+    const permissionIds = response.body.data.map(p => p.id);
+    client.assert(!permissionIds.includes(1), "Permission 1 should be removed");
+    client.assert(!permissionIds.includes(2), "Permission 2 should be removed");
+    client.assert(!permissionIds.includes(3), "Permission 3 should be removed");
+    client.assert(permissionIds.includes(4), "Permission 4 should be present");
+    client.assert(permissionIds.includes(5), "Permission 5 should be present");
+    client.assert(permissionIds.includes(6), "Permission 6 should be present");
+    client.assert(permissionIds.includes(7), "Permission 7 should be present");
+  });
+%}
+
+### 31. Test permission management with non-existent menu (should fail)
+GET {{iamBase}}/menus/999999/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Non-existent menu permission test", function() {
+    client.assert(response.status === 500 || response.status === 404, "Should return error status");
+  });
+%}
+
+### 32. Test adding non-existent permissions (should fail)
+POST {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[999999, 999998]
+
+> {%
+  client.test("Non-existent permissions test", function() {
+    client.assert(response.status === 500 || response.status === 400, "Should return error status");
+  });
+%}
+
+### 33. Clear all permissions from menu
+PUT {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+[]
+
+> {%
+  client.test("Clear all permissions successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### 34. Verify permissions were cleared
+GET {{iamBase}}/menus/{{test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Verify permissions cleared", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 0, "Should have no permissions");
+  });
+%}
+
+### 35. Test menu creation with permissions
+POST {{iamBase}}/menus
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "权限测试菜单",
+  "code": "PERMISSION_TEST_MENU",
+  "path": "/permission-test",
+  "icon": "permission",
+  "component": "PermissionTest/index",
+  "menuType": "MENU",
+  "sortOrder": 103,
+  "status": 1,
+  "external": false,
+  "cache": false,
+  "hidden": false,
+  "permissionIds": [1, 2, 3]
+}
+
+> {%
+  client.test("Create menu with permissions successful", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.data.code === "PERMISSION_TEST_MENU", "Menu code should be PERMISSION_TEST_MENU");
+    
+    client.global.set("permission_test_menu_id", response.body.data.id);
+  });
+%}
+
+### 36. Verify menu was created with permissions
+GET {{iamBase}}/menus/{{permission_test_menu_id}}/permissions
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Verify menu created with permissions", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 3, "Should have exactly 3 permissions");
+  });
+%}
+
+### 37. Verify cleanup - check menu tree after deletion
+GET {{iamBase}}/menus/tree
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Cleanup verification", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+
+    
+    // Verify test menus are removed
+    const menuTree = JSON.stringify(response.body.data);
+    client.assert(!menuTree.includes("TEST_MENU"), "TEST_MENU should be removed");
+    client.assert(!menuTree.includes("TEST_CHILD_MENU"), "TEST_CHILD_MENU should be removed");
+  });
+%}

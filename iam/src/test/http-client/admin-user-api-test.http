@@ -1,0 +1,158 @@
+### 管理员用户管理接口测试文件
+### 用于测试管理员对用户的CRUD操作
+
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+
+### 1. 管理员登录获取token
+POST {{iamBase}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "tenant_admin_demo",
+  "password": "StrongPass123!",
+  "tenantId": 2
+}
+
+> {%
+client.global.set("adminToken", response.body.data.accessToken);
+console.log("Admin login successful");
+%}
+
+### 管理员用户管理功能测试
+
+### 2. 创建新用户
+POST {{iamBase}}/users
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "username": "newuser001",
+  "password": "password123",
+  "email": "newuser001@example.com",
+  "phone": "13800138001",
+  "realName": "新用户001",
+  "status": 1,
+  "roleIds": [4]
+}
+
+> {%
+client.global.set("newUserId", response.body.data.id);
+console.log("Created user with ID:", response.body.data.id);
+%}
+
+### 3. 获取用户详情
+GET {{iamBase}}/users/{{newUserId}}
+Authorization: Bearer {{adminToken}}
+
+### 4. 根据用户名获取用户
+GET {{iamBase}}/users/username/newuser001
+Authorization: Bearer {{adminToken}}
+
+### 5. 分页获取所有用户
+GET {{iamBase}}/users?page=0&size=10&sort=id,desc
+Authorization: Bearer {{adminToken}}
+
+### 6. 搜索用户
+GET {{iamBase}}/users/search?keyword=新用户&page=0&size=10
+Authorization: Bearer {{adminToken}}
+
+
+### 8. 更新用户信息
+PUT {{iamBase}}/users/{{newUserId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "email": "updated-newuser001@example.com",
+  "phone": "13900139001",
+  "realName": "更新后的新用户001",
+  "status": 1,
+  "roleIds": [2, 4]
+}
+
+### 9. 管理员修改用户密码
+POST {{iamBase}}/users/{{newUserId}}/change-password
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "oldPassword": "password123",
+  "newPassword": "newPassword456",
+  "confirmPassword": "newPassword456"
+}
+
+### 10. 管理员重置用户密码
+POST {{iamBase}}/users/{{newUserId}}/reset-password?newPassword=resetPassword789
+Authorization: Bearer {{adminToken}}
+
+### 11. 禁用用户
+POST {{iamBase}}/users/{{newUserId}}/disable
+Authorization: Bearer {{adminToken}}
+
+### 12. 启用用户
+POST {{iamBase}}/users/{{newUserId}}/enable
+Authorization: Bearer {{adminToken}}
+
+### 13. 为用户分配角色
+POST {{iamBase}}/users/{{newUserId}}/roles
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+[1, 2, 3]
+
+### 14. 移除用户角色
+DELETE {{iamBase}}/users/{{newUserId}}/roles
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+[1]
+
+### 15. 检查用户名是否存在
+GET {{iamBase}}/users/check-username?username=newuser001
+Authorization: Bearer {{adminToken}}
+
+### 16. 检查邮箱是否存在
+GET {{iamBase}}/users/check-email?email=newuser001@example.com
+Authorization: Bearer {{adminToken}}
+
+### 17. 删除用户
+DELETE {{iamBase}}/users/{{newUserId}}
+Authorization: Bearer {{adminToken}}
+
+### 权限测试：普通用户登录后尝试管理员操作
+
+### 18. 普通用户登录
+POST {{iamBase}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "password123",
+  "tenantId": 1
+}
+
+> {%
+client.global.set("userToken", response.body.data.token);
+console.log("Regular user login successful");
+%}
+
+### 19. 普通用户尝试创建用户（应该失败）
+POST {{iamBase}}/users
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "username": "unauthorized",
+  "password": "password123",
+  "email": "unauthorized@example.com",
+  "realName": "未授权用户"
+}
+
+### 20. 普通用户尝试获取用户列表（应该失败）
+GET {{iamBase}}/users
+Authorization: Bearer {{userToken}}
+
+### 21. 普通用户尝试删除用户（应该失败）
+DELETE {{iamBase}}/users/1
+Authorization: Bearer {{userToken}}

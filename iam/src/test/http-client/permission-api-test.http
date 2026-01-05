@@ -1,0 +1,492 @@
+### 权限管理 API 测试 - IntelliJ IDEA HTTP Client
+### 基础配置
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@contentType = {{contentType}}
+
+### 前置条件：先执行认证登录获取Token
+### 可以通过运行 auth-api-test.http 中的登录测试来获取 accessToken
+
+###############################################################################
+### 权限管理 API 测试
+###############################################################################
+
+### 1. 创建权限 - 有效数据
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户查看",
+  "code": "USER_READ",
+  "resource": "user",
+  "action": "read",
+  "description": "查看用户信息的权限",
+  "status": 1
+}
+
+> {%
+client.test("Create permission - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create permission failed");
+    client.assert(response.body.data.id, "Permission ID not found");
+    client.assert(response.body.data.code === "USER_READ", "Permission code mismatch");
+    
+    // 保存权限ID用于后续测试
+    client.global.set("testPermissionId", response.body.data.id);
+});
+%}
+
+###
+
+### 2. 创建权限 - 用户写入
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户写入",
+  "code": "USER_WRITE",
+  "resource": "user",
+  "action": "write",
+  "description": "创建和修改用户信息的权限",
+  "status": 1
+}
+
+> {%
+client.test("Create permission - user write", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create permission failed");
+    client.assert(response.body.data.code === "USER_WRITE", "Permission code mismatch");
+    
+    client.global.set("userWritePermissionId", response.body.data.id);
+});
+%}
+
+###
+
+### 3. 创建权限 - 用户删除
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户删除",
+  "code": "USER_DELETE",
+  "resource": "user",
+  "action": "delete",
+  "description": "删除用户的权限",
+  "status": 1
+}
+
+> {%
+client.test("Create permission - user delete", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create permission failed");
+    client.assert(response.body.data.code === "USER_DELETE", "Permission code mismatch");
+    
+    client.global.set("userDeletePermissionId", response.body.data.id);
+});
+%}
+
+###
+
+### 4. 创建权限 - 空名称
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "",
+  "code": "EMPTY_NAME_TEST",
+  "resource": "test",
+  "action": "test"
+}
+
+> {%
+client.test("Create permission - empty name", function() {
+    client.assert(response.status === 400, "Should return 400 for empty name");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 5. 创建权限 - 空代码
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "测试权限",
+  "code": "",
+  "resource": "test",
+  "action": "test"
+}
+
+> {%
+client.test("Create permission - empty code", function() {
+    client.assert(response.status === 400, "Should return 400 for empty code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 6. 创建权限 - 重复代码
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "重复权限",
+  "code": "USER_READ",
+  "resource": "user",
+  "action": "read",
+  "description": "尝试创建重复代码的权限"
+}
+
+> {%
+client.test("Create permission - duplicate code", function() {
+    client.assert(response.status === 400, "Should return 400 for duplicate code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 7. 创建权限 - 名称过长
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "这是一个非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的权限名称",
+  "code": "VERY_LONG_NAME",
+  "resource": "test",
+  "action": "test"
+}
+
+> {%
+client.test("Create permission - name too long", function() {
+    client.assert(response.status === 400, "Should return 400 for name too long");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 8. 获取权限详情 - 有效ID
+GET {{iamBase}}/permissions/{{testPermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permission by ID - valid", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get permission failed");
+    client.assert(response.body.data.id, "Permission ID not found");
+    client.assert(response.body.data.code, "Permission code not found");
+    client.assert(response.body.data.name, "Permission name not found");
+    client.assert(response.body.data.resource, "Permission resource not found");
+    client.assert(response.body.data.action, "Permission action not found");
+});
+%}
+
+###
+
+### 9. 获取权限详情 - 无效ID
+GET {{iamBase}}/permissions/99999
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permission by ID - invalid", function() {
+    client.assert(response.status === 404, "Should return 404 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 10. 获取权限详情 - 负数ID
+GET {{iamBase}}/permissions/-1
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permission by ID - negative ID", function() {
+    client.assert(response.status === 404, "Should return 404 for negative ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 11. 获取权限列表 - 分页
+GET {{iamBase}}/permissions?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permissions list - paginated", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get permissions failed");
+    client.assert(response.body.data.content, "Content not found");
+    client.assert(response.body.data.totalElements !== undefined, "Total elements not found");
+    client.assert(response.body.data.totalPages !== undefined, "Total pages not found");
+    client.assert(response.body.data.number !== undefined, "Page number not found");
+    client.assert(response.body.data.size !== undefined, "Page size not found");
+});
+%}
+
+###
+
+### 12. 获取权限列表 - 第二页
+GET {{iamBase}}/permissions?page=1&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permissions list - second page", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get permissions failed");
+    client.assert(response.body.data.number === 1, "Page number should be 1");
+    client.assert(response.body.data.size === 5, "Page size should be 5");
+});
+%}
+
+###
+
+### 13. 获取权限列表 - 默认分页
+GET {{iamBase}}/permissions
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get permissions list - default pagination", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get permissions failed");
+    client.assert(response.body.data.size === 20, "Default page size should be 20");
+});
+%}
+
+###
+
+### 14. 更新权限 - 有效数据
+PUT {{iamBase}}/permissions/{{testPermissionId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户查看(更新)",
+  "code": "USER_READ_UPDATED",
+  "resource": "user",
+  "action": "read",
+  "description": "更新后的用户查看权限",
+  "status": 1
+}
+
+> {%
+client.test("Update permission - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update permission failed");
+    client.assert(response.body.data.name === "用户查看(更新)", "Permission name not updated");
+    client.assert(response.body.data.code === "USER_READ_UPDATED", "Permission code not updated");
+});
+%}
+
+###
+
+### 15. 更新权限 - 部分字段
+PUT {{iamBase}}/permissions/{{userWritePermissionId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户写入(仅更新名称)",
+  "code": "USER_WRITE",
+  "resource": "user",
+  "action": "write",
+  "description": "仅更新名称的测试",
+  "status": 1
+}
+
+> {%
+client.test("Update permission - partial fields", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update permission failed");
+    client.assert(response.body.data.name === "用户写入(仅更新名称)", "Permission name not updated");
+});
+%}
+
+###
+
+### 16. 更新权限 - 无效ID
+PUT {{iamBase}}/permissions/99999
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "不存在的权限",
+  "code": "NON_EXISTENT",
+  "resource": "test",
+  "action": "test"
+}
+
+> {%
+client.test("Update permission - invalid ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 17. 更新权限 - 空名称
+PUT {{iamBase}}/permissions/{{userDeletePermissionId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "",
+  "code": "USER_DELETE",
+  "resource": "user",
+  "action": "delete"
+}
+
+> {%
+client.test("Update permission - empty name", function() {
+    client.assert(response.status === 400, "Should return 400 for empty name");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 18. 更新权限 - 重复代码
+PUT {{iamBase}}/permissions/{{userDeletePermissionId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "尝试重复代码",
+  "code": "USER_READ_UPDATED",
+  "resource": "user",
+  "action": "delete"
+}
+
+> {%
+client.test("Update permission - duplicate code", function() {
+    client.assert(response.status === 400, "Should return 400 for duplicate code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 19. 更新权限状态 - 禁用
+PUT {{iamBase}}/permissions/{{userDeletePermissionId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "用户删除",
+  "code": "USER_DELETE",
+  "resource": "user",
+  "action": "delete",
+  "description": "删除用户的权限",
+  "status": 0
+}
+
+> {%
+client.test("Update permission status - disable", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update permission failed");
+    client.assert(response.body.data.status === 0, "Permission status should be disabled");
+});
+%}
+
+###
+
+### 20. 权限操作 - 无认证
+GET {{iamBase}}/permissions
+
+> {%
+client.test("Get permissions without auth", function() {
+    client.assert(response.status === 401, "Should return 401 without authentication");
+});
+%}
+
+###
+
+### 21. 权限操作 - 无效Token
+GET {{iamBase}}/permissions
+Authorization: Bearer invalid_token_here
+
+> {%
+client.test("Get permissions with invalid token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid token");
+});
+%}
+
+###
+
+### 22. 删除权限 - 无效ID (测试错误处理)
+DELETE {{iamBase}}/permissions/99999
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Delete permission - invalid ID", function() {
+    client.assert(response.status === 404, "Should return 404 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 23. 删除权限 - 有效ID (删除测试数据)
+DELETE {{iamBase}}/permissions/{{userDeletePermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Delete permission - valid ID", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete permission failed");
+});
+%}
+
+###
+
+### 24. 验证删除 - 获取已删除的权限
+GET {{iamBase}}/permissions/{{userDeletePermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Verify deletion - get deleted permission", function() {
+    client.assert(response.status === 404, "Should return 404 for deleted permission");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###############################################################################
+### 清理测试数据
+###############################################################################
+
+### 25. 清理 - 删除测试权限
+DELETE {{iamBase}}/permissions/{{testPermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete test permission", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete permission failed");
+});
+%}
+
+###
+
+### 26. 清理 - 删除用户写入权限
+DELETE {{iamBase}}/permissions/{{userWritePermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete user write permission", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete permission failed");
+});
+%}

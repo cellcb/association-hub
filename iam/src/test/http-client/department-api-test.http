@@ -1,0 +1,808 @@
+### 部门管理 API 测试 - IntelliJ IDEA HTTP Client
+### 基础配置
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@contentType = {{contentType}}
+@accessToken = {{accessToken}}
+
+### 前置条件：先执行认证登录获取Token
+### 可以通过运行 auth-api-test.http 中的登录测试来获取 accessToken
+
+###############################################################################
+### 部门管理 API 测试
+###############################################################################
+
+### 1. 创建根部门 - 有效数据
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "总公司",
+  "code": "ROOT_DEPT",
+  "description": "根部门",
+  "parentId": null,
+  "sortOrder": 1,
+  "status": 1
+}
+
+> {%
+client.test("Create root department - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    client.assert(response.body.data.id, "Department ID not found");
+    client.assert(response.body.data.code === "ROOT_DEPT", "Department code mismatch");
+    client.assert(response.body.data.name === "总公司", "Department name mismatch");
+    client.assert(response.body.data.parentId === null, "Root department should have null parent");
+    
+    // 保存根部门ID
+    client.global.set("rootDeptId", response.body.data.id);
+});
+%}
+
+###
+
+### 2. 创建子部门 - 技术部
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "技术部",
+  "code": "TECH_DEPT",
+  "description": "技术开发部门",
+  "parentId": {{rootDeptId}},
+  "sortOrder": 1,
+  "status": 1
+}
+
+> {%
+client.test("Create child department - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    client.assert(response.body.data.id, "Department ID not found");
+    client.assert(response.body.data.parentId == client.global.get("rootDeptId"), "Parent ID mismatch");
+    client.assert(response.body.data.code === "TECH_DEPT", "Department code mismatch");
+    
+    // 保存子部门ID
+    client.global.set("childDeptId", response.body.data.id);
+});
+%}
+
+###
+
+### 3. 创建市场部
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "市场部",
+  "code": "MARKET_DEPT",
+  "description": "市场营销部门",
+  "parentId": {{rootDeptId}},
+  "sortOrder": 2,
+  "status": 1
+}
+
+> {%
+client.test("Create market department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    client.assert(response.body.data.sortOrder === 2, "Sort order should be 2");
+    
+    client.global.set("marketDeptId", response.body.data.id);
+});
+%}
+
+###
+
+### 4. 创建技术部子部门 - 前端组
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "前端组",
+  "code": "FRONTEND_GROUP",
+  "description": "前端开发组",
+  "parentId": {{childDeptId}},
+  "sortOrder": 1,
+  "status": 1
+}
+
+> {%
+client.test("Create frontend group", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    client.assert(response.body.data.parentId == client.global.get("childDeptId"), "Parent should be tech dept");
+    
+    client.global.set("frontendGroupId", response.body.data.id);
+});
+%}
+
+###
+
+### 5. 创建技术部子部门 - 后端组
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "后端组",
+  "code": "BACKEND_GROUP",
+  "description": "后端开发组",
+  "parentId": {{childDeptId}},
+  "sortOrder": 2,
+  "status": 1
+}
+
+> {%
+client.test("Create backend group", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    
+    client.global.set("backendGroupId", response.body.data.id);
+});
+%}
+
+###
+
+### 6. 创建部门 - 空名称
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "",
+  "code": "EMPTY_NAME_DEPT",
+  "description": "空名称测试"
+}
+
+> {%
+client.test("Create department - empty name", function() {
+    client.assert(response.status === 400, "Should return 400 for empty name");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 7. 创建部门 - 空编码
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "空编码部门",
+  "code": "",
+  "description": "空编码测试"
+}
+
+> {%
+client.test("Create department - empty code", function() {
+    client.assert(response.status === 400, "Should return 400 for empty code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 8. 创建部门 - 重复编码
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "重复编码部门",
+  "code": "ROOT_DEPT",
+  "description": "尝试创建重复编码的部门"
+}
+
+> {%
+client.test("Create department - duplicate code", function() {
+    client.assert(response.status === 400, "Should return 400 for duplicate code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 9. 创建部门 - 名称过长
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "这是一个非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的部门名称",
+  "code": "VERY_LONG_NAME_DEPT",
+  "description": "名称过长测试"
+}
+
+> {%
+client.test("Create department - name too long", function() {
+    client.assert(response.status === 400, "Should return 400 for name too long");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 10. 获取部门详情 - 有效ID
+GET {{iamBase}}/departments/{{rootDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by ID - valid", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get department failed");
+    client.assert(response.body.data.id, "Department ID not found");
+    client.assert(response.body.data.code, "Department code not found");
+    client.assert(response.body.data.name, "Department name not found");
+    client.assert(response.body.data.status !== undefined, "Department status not found");
+});
+%}
+
+###
+
+### 11. 获取部门详情 - 无效ID
+GET {{iamBase}}/departments/999999
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by ID - invalid", function() {
+    client.assert(response.status === 404, "Should return 404 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 12. 获取部门详情 - 负数ID
+GET {{iamBase}}/departments/-1
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by ID - negative ID", function() {
+    client.assert(response.status === 404, "Should return 404 for negative ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 13. 根据编码获取部门 - 有效编码
+GET {{iamBase}}/departments/code/ROOT_DEPT
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by code - valid", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get department failed");
+    client.assert(response.body.data.code === "ROOT_DEPT", "Department code mismatch");
+    client.assert(response.body.data.name === "总公司", "Department name should match");
+});
+%}
+
+###
+
+### 14. 根据编码获取部门 - 无效编码
+GET {{iamBase}}/departments/code/NON_EXISTENT
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by code - invalid", function() {
+    client.assert(response.status === 404, "Should return 404 for invalid code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 15. 根据编码获取部门 - 子部门编码
+GET {{iamBase}}/departments/code/TECH_DEPT
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department by code - child department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get department failed");
+    client.assert(response.body.data.code === "TECH_DEPT", "Department code mismatch");
+    client.assert(response.body.data.parentId !== null, "Child department should have parent");
+});
+%}
+
+###
+
+### 16. 获取所有部门列表
+GET {{iamBase}}/departments
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get all departments", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get departments failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length >= 5, "Should have at least 5 departments");
+});
+%}
+
+###
+
+### 17. 获取部门树形结构
+GET {{iamBase}}/departments/tree
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get department tree", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get department tree failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    
+    // 验证树形结构
+    let hasRootDept = false;
+    if (response.body.data.length > 0) {
+        for (let dept of response.body.data) {
+            if (dept.code === "ROOT_DEPT") {
+                hasRootDept = true;
+                client.assert(Array.isArray(dept.children), "Root dept should have children array");
+                break;
+            }
+        }
+    }
+    client.assert(hasRootDept, "Should contain root department");
+});
+%}
+
+###
+
+### 18. 获取子部门列表
+GET {{iamBase}}/departments/{{rootDeptId}}/children
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get children departments", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get children failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length >= 2, "Root dept should have at least 2 children");
+    
+    // 验证子部门的父ID
+    for (let child of response.body.data) {
+        client.assert(child.parentId == client.global.get("rootDeptId"), "Child should have correct parent ID");
+    }
+});
+%}
+
+###
+
+### 19. 获取技术部的子部门
+GET {{iamBase}}/departments/{{childDeptId}}/children
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get tech department children", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get children failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 2, "Tech dept should have 2 children");
+});
+%}
+
+###
+
+### 20. 获取叶子部门的子部门 - 应为空
+GET {{iamBase}}/departments/{{frontendGroupId}}/children
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get leaf department children - should be empty", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get children failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 0, "Leaf dept should have no children");
+});
+%}
+
+###
+
+### 21. 搜索部门 - 有效关键词
+GET {{iamBase}}/departments/search?name=技术
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Search departments - valid keyword", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Search departments failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length >= 1, "Should find at least tech department");
+    
+    // 验证搜索结果包含关键词
+    let foundTechDept = false;
+    for (let dept of response.body.data) {
+        if (dept.name.includes("技术")) {
+            foundTechDept = true;
+            break;
+        }
+    }
+    client.assert(foundTechDept, "Should find department containing '技术'");
+});
+%}
+
+###
+
+### 22. 搜索部门 - 部分匹配
+GET {{iamBase}}/departments/search?name=组
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Search departments - partial match", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Search departments failed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length >= 2, "Should find at least 2 groups");
+});
+%}
+
+###
+
+### 23. 搜索部门 - 无结果关键词
+GET {{iamBase}}/departments/search?name=不存在的部门
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Search departments - no results", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Search should succeed even with no results");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+    client.assert(response.body.data.length === 0, "Should return empty array");
+});
+%}
+
+###
+
+### 24. 搜索部门 - 空关键词
+GET {{iamBase}}/departments/search?name=
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Search departments - empty keyword", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Search with empty keyword should succeed");
+    client.assert(Array.isArray(response.body.data), "Data should be an array");
+});
+%}
+
+###
+
+### 25. 更新部门 - 有效数据
+PUT {{iamBase}}/departments/{{childDeptId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "技术部(更新)",
+  "code": "TECH_DEPT_UPDATED",
+  "description": "更新后的技术开发部门",
+  "parentId": {{rootDeptId}},
+  "sortOrder": 1,
+  "status": 1
+}
+
+> {%
+client.test("Update department - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update department failed");
+    client.assert(response.body.data.name === "技术部(更新)", "Department name not updated");
+    client.assert(response.body.data.code === "TECH_DEPT_UPDATED", "Department code not updated");
+});
+%}
+
+###
+
+### 26. 更新部门 - 部分字段
+PUT {{iamBase}}/departments/{{marketDeptId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "市场部(更新描述)",
+  "code": "MARKET_DEPT",
+  "description": "更新后的市场营销部门描述",
+  "parentId": {{rootDeptId}},
+  "sortOrder": 2,
+  "status": 1
+}
+
+> {%
+client.test("Update department - partial fields", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update department failed");
+    client.assert(response.body.data.description === "更新后的市场营销部门描述", "Department description not updated");
+});
+%}
+
+###
+
+### 27. 更新部门 - 无效ID
+PUT {{iamBase}}/departments/99999
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "不存在的部门",
+  "code": "NON_EXISTENT",
+  "description": "测试"
+}
+
+> {%
+client.test("Update department - invalid ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 28. 移动部门 - 创建目标父部门
+POST {{iamBase}}/departments
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "人事部",
+  "code": "HR_DEPT",
+  "description": "人力资源部门",
+  "parentId": {{rootDeptId}},
+  "sortOrder": 3,
+  "status": 1
+}
+
+> {%
+client.test("Create target parent department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create department failed");
+    
+    // 保存人事部ID作为移动目标
+    client.global.set("hrDeptId", response.body.data.id);
+});
+%}
+
+###
+
+### 29. 移动部门 - 有效操作
+PATCH {{iamBase}}/departments/{{frontendGroupId}}/move
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "newParentId": {{hrDeptId}}
+}
+
+> {%
+client.test("Move department - valid operation", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Move department failed");
+});
+%}
+
+###
+
+### 30. 验证部门移动 - 检查新父部门
+GET {{iamBase}}/departments/{{frontendGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Verify department move - check new parent", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get department failed");
+    client.assert(response.body.data.parentId == client.global.get("hrDeptId"), "Department should have new parent");
+});
+%}
+
+###
+
+### 31. 移动部门 - 无效目标
+PATCH {{iamBase}}/departments/{{backendGroupId}}/move
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "newParentId": 99999
+}
+
+> {%
+client.test("Move department - invalid target", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid target");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 32. 移动部门 - 循环引用
+PATCH {{iamBase}}/departments/{{rootDeptId}}/move
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "newParentId": {{childDeptId}}
+}
+
+> {%
+client.test("Move department - circular reference", function() {
+    client.assert(response.status === 400, "Should return 400 for circular reference");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 33. 移动部门 - 移动到自己
+PATCH {{iamBase}}/departments/{{marketDeptId}}/move
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "newParentId": {{marketDeptId}}
+}
+
+> {%
+client.test("Move department - move to self", function() {
+    client.assert(response.status === 400, "Should return 400 for moving to self");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 34. 更新部门状态 - 禁用
+PUT {{iamBase}}/departments/{{backendGroupId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "后端组",
+  "code": "BACKEND_GROUP",
+  "description": "后端开发组",
+  "parentId": {{childDeptId}},
+  "sortOrder": 2,
+  "status": 0
+}
+
+> {%
+client.test("Update department status - disable", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update department failed");
+    client.assert(response.body.data.status === 0, "Department status should be disabled");
+});
+%}
+
+###
+
+### 35. 删除部门 - 有子部门(应失败)
+DELETE {{iamBase}}/departments/{{rootDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Delete department with children - should fail", function() {
+    client.assert(response.status === 400, "Should return 400 when department has children");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 36. 删除部门 - 无效ID
+DELETE {{iamBase}}/departments/99999
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Delete department - invalid ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 37. 部门操作 - 无认证
+GET {{iamBase}}/departments
+
+> {%
+client.test("Get departments without auth", function() {
+    client.assert(response.status === 401, "Should return 401 without authentication");
+});
+%}
+
+###
+
+### 38. 部门操作 - 无效Token
+GET {{iamBase}}/departments
+Authorization: Bearer invalid_token_here
+
+> {%
+client.test("Get departments with invalid token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid token");
+});
+%}
+
+###############################################################################
+### 清理测试数据 - 按层级从下往上删除
+###############################################################################
+
+### 39. 清理 - 删除前端组(已移动到人事部)
+DELETE {{iamBase}}/departments/{{frontendGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete frontend group", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}
+
+###
+
+### 40. 清理 - 删除后端组
+DELETE {{iamBase}}/departments/{{backendGroupId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete backend group", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}
+
+###
+
+### 41. 清理 - 删除技术部
+DELETE {{iamBase}}/departments/{{childDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete tech department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}
+
+###
+
+### 42. 清理 - 删除市场部
+DELETE {{iamBase}}/departments/{{marketDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete market department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}
+
+###
+
+### 43. 清理 - 删除人事部
+DELETE {{iamBase}}/departments/{{hrDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete HR department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}
+
+###
+
+### 44. 清理 - 删除根部门
+DELETE {{iamBase}}/departments/{{rootDeptId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete root department", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete department failed");
+});
+%}

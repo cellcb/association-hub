@@ -1,0 +1,673 @@
+### 角色管理 API 测试 - IntelliJ IDEA HTTP Client
+### 基础配置
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@contentType = {{contentType}}
+@testRoleId = 2
+### 前置条件：先执行 auth.http 中的登录获取Token
+
+###############################################################################
+### 角色管理 API 测试
+###############################################################################
+
+### 1. 创建测试权限 - 为角色测试准备权限数据
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "角色测试权限",
+  "code": "ROLE_TEST_PERMISSION",
+  "resource": "role",
+  "action": "test",
+  "description": "用于角色测试的权限",
+  "status": 1
+}
+
+> {%
+client.test("Create test permission for role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create permission failed");
+    
+    // 保存权限ID用于角色测试
+    client.global.set("roleTestPermissionId", response.body.data.id);
+});
+%}
+
+###
+
+### 2. 创建第二个测试权限
+POST {{iamBase}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "角色测试权限2",
+  "code": "ROLE_TEST_PERMISSION_2",
+  "resource": "role",
+  "action": "test2",
+  "description": "用于角色测试的第二个权限",
+  "status": 1
+}
+
+> {%
+client.test("Create second test permission for role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create permission failed");
+    
+    client.global.set("roleTestPermissionId2", response.body.data.id);
+});
+%}
+
+###
+
+### 3. 创建角色 - 有效数据
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "测试角色",
+  "code": "TEST_ROLE",
+  "description": "用于测试的角色",
+  "status": 1,
+  "permissionIds": []
+}
+
+> {%
+client.test("Create role - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create role failed");
+    client.assert(response.body.data.id, "Role ID not found");
+    client.assert(response.body.data.code === "TEST_ROLE", "Role code mismatch");
+    client.assert(response.body.data.name === "测试角色", "Role name mismatch");
+    
+    // 保存角色ID用于后续测试
+    client.global.set("testRoleId", response.body.data.id);
+});
+%}
+
+###
+
+### 4. 创建角色 - 带权限
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "有权限的角色",
+  "code": "ROLE_WITH_PERMISSIONS",
+  "description": "带有权限的测试角色",
+  "status": 1,
+  "permissionIds": [{{roleTestPermissionId}}]
+}
+
+> {%
+client.test("Create role with permissions", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create role failed");
+    client.assert(response.body.data.permissions, "Permissions not found");
+    client.assert(response.body.data.permissions.length > 0, "Should have permissions");
+    
+    // 保存带权限的角色ID
+    client.global.set("roleWithPermissionsId", response.body.data.id);
+});
+%}
+
+###
+
+### 5. 创建管理员角色
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "管理员角色",
+  "code": "ADMIN_ROLE",
+  "description": "系统管理员角色",
+  "status": 1,
+  "permissionIds": [{{roleTestPermissionId}}, {{roleTestPermissionId2}}]
+}
+
+> {%
+client.test("Create admin role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Create role failed");
+    client.assert(response.body.data.permissions.length === 2, "Should have 2 permissions");
+    
+    client.global.set("adminRoleId", response.body.data.id);
+});
+%}
+
+###
+
+### 6. 创建角色 - 空名称
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "",
+  "code": "EMPTY_NAME_ROLE",
+  "description": "空名称测试"
+}
+
+> {%
+client.test("Create role - empty name", function() {
+    client.assert(response.status === 400, "Should return 400 for empty name");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 7. 创建角色 - 空代码
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "空代码角色",
+  "code": "",
+  "description": "空代码测试"
+}
+
+> {%
+client.test("Create role - empty code", function() {
+    client.assert(response.status === 400, "Should return 400 for empty code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 8. 创建角色 - 重复代码
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "重复角色",
+  "code": "TEST_ROLE",
+  "description": "尝试创建重复代码的角色"
+}
+
+> {%
+client.test("Create role - duplicate code", function() {
+    client.assert(response.status === 400, "Should return 400 for duplicate code");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 9. 创建角色 - 名称过长
+POST {{iamBase}}/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "这是一个非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的角色名称",
+  "code": "VERY_LONG_NAME_ROLE",
+  "description": "名称过长测试"
+}
+
+> {%
+client.test("Create role - name too long", function() {
+    client.assert(response.status === 400, "Should return 400 for name too long");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 10. 获取角色详情 - 有效ID
+GET {{iamBase}}/roles/{{testRoleId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get role by ID - valid", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get role failed");
+    client.assert(response.body.data.id, "Role ID not found");
+    client.assert(response.body.data.code, "Role code not found");
+    client.assert(response.body.data.name, "Role name not found");
+    client.assert(response.body.data.status !== undefined, "Role status not found");
+});
+%}
+
+###
+
+### 11. 获取角色详情 - 无效ID
+GET {{iamBase}}/roles/99999
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get role by ID - invalid", function() {
+    client.assert(response.status === 404, "Should return 404 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 12. 获取角色详情 - 负数ID
+GET {{iamBase}}/roles/-1
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get role by ID - negative ID", function() {
+    client.assert(response.status === 404, "Should return 404 for negative ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 13. 获取角色列表 - 分页
+GET {{iamBase}}/roles?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get roles list - paginated", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get roles failed");
+    client.assert(response.body.data.content, "Content not found");
+    client.assert(response.body.data.totalElements !== undefined, "Total elements not found");
+    client.assert(response.body.data.totalPages !== undefined, "Total pages not found");
+    client.assert(response.body.data.number !== undefined, "Page number not found");
+    client.assert(response.body.data.size !== undefined, "Page size not found");
+});
+%}
+
+###
+
+### 14. 获取角色列表 - 第二页
+GET {{iamBase}}/roles?page=1&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get roles list - second page", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get roles failed");
+    client.assert(response.body.data.number === 1, "Page number should be 1");
+    client.assert(response.body.data.size === 5, "Page size should be 5");
+});
+%}
+
+###
+
+### 15. 获取角色列表 - 默认分页
+GET {{iamBase}}/roles
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get roles list - default pagination", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get roles failed");
+    client.assert(response.body.data.size === 20, "Default page size should be 20");
+});
+%}
+
+###
+
+### 16. 更新角色 - 有效数据
+PUT {{iamBase}}/roles/{{testRoleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "测试角色(更新)",
+  "code": "TEST_ROLE_UPDATED",
+  "description": "更新后的测试角色",
+  "status": 1,
+  "permissionIds": []
+}
+
+> {%
+client.test("Update role - valid data", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update role failed");
+    client.assert(response.body.data.name === "测试角色(更新)", "Role name not updated");
+    client.assert(response.body.data.code === "TEST_ROLE_UPDATED", "Role code not updated");
+});
+%}
+
+###
+
+### 17. 更新角色 - 部分字段
+PUT {{iamBase}}/roles/{{roleWithPermissionsId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "有权限的角色(更新描述)",
+  "code": "ROLE_WITH_PERMISSIONS",
+  "description": "更新后的描述信息",
+  "status": 1,
+  "permissionIds": [{{roleTestPermissionId}}]
+}
+
+> {%
+client.test("Update role - partial fields", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update role failed");
+    client.assert(response.body.data.description === "更新后的描述信息", "Role description not updated");
+});
+%}
+
+###
+
+### 18. 更新角色 - 无效ID
+PUT {{iamBase}}/roles/99999
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "不存在的角色",
+  "code": "NON_EXISTENT_ROLE",
+  "description": "测试"
+}
+
+> {%
+client.test("Update role - invalid ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 19. 设置角色权限 - 替换权限
+PUT {{iamBase}}/roles/2/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [1,2,4]
+}
+
+> {%
+client.test("Assign permissions to role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Assign permissions failed");
+    client.assert(response.body.data.permissions, "Permissions not found");
+    client.assert(response.body.data.permissions.length === 1, "Should have 1 permission");
+});
+%}
+
+###
+
+### 20. 设置角色权限 - 多个权限
+PUT {{iamBase}}/roles/{{testRoleId}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [{{roleTestPermissionId}}, {{roleTestPermissionId2}}]
+}
+
+> {%
+client.test("Assign multiple permissions to role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Assign permissions failed");
+    client.assert(response.body.data.permissions.length === 2, "Should have 2 permissions");
+});
+%}
+
+###
+
+### 21. 添加角色权限 - 保留现有权限
+POST {{iamBase}}/roles/{{testRoleId}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [{{roleTestPermissionId}}]
+}
+
+> {%
+client.test("Add permissions to role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Add permissions failed");
+});
+%}
+
+###
+
+### 22. 获取角色权限
+GET {{iamBase}}/roles/{{testRoleId}}/permissions
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get role permissions", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get role permissions failed");
+    client.assert(Array.isArray(response.body.data), "Permissions should be an array");
+    client.assert(response.body.data.length >= 1, "Should have at least 1 permission");
+});
+%}
+
+###
+
+### 23. 获取角色权限 - 空权限角色
+GET {{iamBase}}/roles/{{adminRoleId}}/permissions
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Get role permissions - role with permissions", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get role permissions failed");
+    client.assert(Array.isArray(response.body.data), "Permissions should be an array");
+});
+%}
+
+###
+
+### 24. 移除角色权限 - 部分权限
+DELETE {{iamBase}}/roles/{{testRoleId}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [{{roleTestPermissionId2}}]
+}
+
+> {%
+client.test("Remove permissions from role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Remove permissions failed");
+});
+%}
+
+###
+
+### 25. 验证权限移除 - 检查剩余权限
+GET {{iamBase}}/roles/{{testRoleId}}/permissions
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Verify permission removal", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Get role permissions failed");
+    
+    // 验证是否只剩下一个权限
+    let hasRemovedPermission = false;
+    if (response.body.data) {
+        for (let permission of response.body.data) {
+            if (permission.id == client.global.get("roleTestPermissionId2")) {
+                hasRemovedPermission = true;
+                break;
+            }
+        }
+    }
+    client.assert(!hasRemovedPermission, "Removed permission should not be present");
+});
+%}
+
+###
+
+### 26. 角色权限操作 - 无效角色ID
+PUT {{iamBase}}/roles/99999/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [{{roleTestPermissionId}}]
+}
+
+> {%
+client.test("Assign permissions - invalid role ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid role ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+
+### 27. 角色权限操作 - 无效权限ID
+PUT {{iamBase}}/roles/{{testRoleId}}/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [99999]
+}
+
+> {%
+client.test("Assign permissions - invalid permission ID", function() {
+    client.assert(response.status === 400, "Should return 400 for invalid permission ID");
+    client.assert(response.body.success === false, "Should indicate failure");
+});
+%}
+
+###
+### 28. 角色权限操作 - 空权限ID列表
+PUT {{iamBase}}/roles/2/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "permissionIds": [1,3,4]
+}
+
+> {%
+client.test("Assign permissions - empty permission IDs", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Assign empty permissions should succeed");
+    client.assert(response.body.data.permissions.length === 0, "Should have no permissions");
+});
+%}
+
+###
+
+### 29. 角色操作 - 无认证
+GET {{iamBase}}/roles
+
+> {%
+client.test("Get roles without auth", function() {
+    client.assert(response.status === 401, "Should return 401 without authentication");
+});
+%}
+
+###
+
+### 30. 角色操作 - 无效Token
+GET {{iamBase}}/roles
+Authorization: Bearer invalid_token_here
+
+> {%
+client.test("Get roles with invalid token", function() {
+    client.assert(response.status === 401, "Should return 401 for invalid token");
+});
+%}
+
+###
+
+### 31. 更新角色状态 - 禁用
+PUT {{iamBase}}/roles/{{adminRoleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "管理员角色",
+  "code": "ADMIN_ROLE",
+  "description": "系统管理员角色",
+  "status": 0,
+  "permissionIds": [{{roleTestPermissionId}}, {{roleTestPermissionId2}}]
+}
+
+> {%
+client.test("Update role status - disable", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Update role failed");
+    client.assert(response.body.data.status === 0, "Role status should be disabled");
+});
+%}
+
+###############################################################################
+### 清理测试数据
+###############################################################################
+
+### 32. 清理 - 删除测试角色
+DELETE {{iamBase}}/roles/{{testRoleId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete test role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete role failed");
+});
+%}
+
+###
+
+### 33. 清理 - 删除带权限的角色
+DELETE {{iamBase}}/roles/{{roleWithPermissionsId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete role with permissions", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete role failed");
+});
+%}
+
+###
+
+### 34. 清理 - 删除管理员角色
+DELETE {{iamBase}}/roles/{{adminRoleId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete admin role", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete role failed");
+});
+%}
+
+###
+
+### 35. 清理 - 删除测试权限
+DELETE {{iamBase}}/permissions/{{roleTestPermissionId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete test permission", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete permission failed");
+});
+%}
+
+###
+
+### 36. 清理 - 删除第二个测试权限
+DELETE {{iamBase}}/permissions/{{roleTestPermissionId2}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+client.test("Cleanup - delete second test permission", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body.success === true, "Delete permission failed");
+});
+%}
