@@ -73,7 +73,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("Illegal argument error: {}", e.getMessage());
+        log.error("Illegal argument error: {}", e.getMessage());
+        e.printStackTrace();  // Force print full stack trace
         return Result.error(400, e.getMessage());
     }
 

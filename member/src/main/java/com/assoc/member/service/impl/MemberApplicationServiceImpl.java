@@ -175,11 +175,15 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
 
         var userResponse = userService.createUser(userRequest);
         Long userId = userResponse.getId();
+        log.info("User response returned, userId={}", userId);
 
+        try {
         // 2. Create Member record
         Member member = new Member();
         member.setUserId(userId);
+        log.info("Generating member number...");
         member.setMemberNo(generateMemberNo(application.getMemberType()));
+        log.info("Generated memberNo={}", member.getMemberNo());
         member.setMemberType(application.getMemberType());
         member.setStatus(MemberStatus.ACTIVE);
         member.setApprovedAt(LocalDateTime.now());
@@ -187,14 +191,18 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         // Set expiration to 1 year from now
         member.setExpiredAt(LocalDateTime.now().plusYears(1));
 
+        log.info("Saving member record...");
         member = memberRepository.save(member);
+        log.info("Member saved with id={}", member.getId());
 
         // 3. Create member detail record
+        log.info("Creating member detail record for type={}", application.getMemberType());
         if (application.getMemberType() == MemberType.INDIVIDUAL) {
             createIndividualMember(member, application);
         } else {
             createOrganizationMember(member, application);
         }
+        log.info("Member detail record created");
 
         // 4. Update application status
         application.setStatus(ApplicationStatus.APPROVED);
@@ -212,6 +220,10 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         // Reload member with details
         return toMemberResponse(memberRepository.findByIdWithDetails(member.getId())
                 .orElseThrow(() -> new BusinessException("Member not found after creation")));
+        } catch (Exception e) {
+            log.error("Error in approveApplication after user creation", e);
+            throw e;
+        }
     }
 
     @Override
@@ -287,9 +299,11 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
 
     private void createOrganizationMember(Member member, MemberApplication application) {
         try {
+            log.info("Creating organization member for memberId={}", member.getId());
             MemberApplicationRequest.OrganizationApplicationData data =
                     objectMapper.readValue(application.getApplicationData(),
                             MemberApplicationRequest.OrganizationApplicationData.class);
+            log.info("Parsed application data: orgName={}, orgType={}", data.getOrgName(), data.getOrgType());
 
             OrganizationMember organization = new OrganizationMember();
             organization.setMember(member);
@@ -300,10 +314,10 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
             organization.setContactPerson(data.getContactPerson());
             organization.setContactPhone(data.getContactPhone() != null ? data.getContactPhone() : application.getPhone());
             organization.setContactEmail(data.getContactEmail() != null ? data.getContactEmail() : application.getEmail());
-            if (data.getEstablishmentDate() != null) {
+            if (data.getEstablishmentDate() != null && !data.getEstablishmentDate().isBlank()) {
                 organization.setEstablishmentDate(LocalDate.parse(data.getEstablishmentDate()));
             }
-            if (data.getRegisteredCapital() != null) {
+            if (data.getRegisteredCapital() != null && !data.getRegisteredCapital().isBlank()) {
                 organization.setRegisteredCapital(new BigDecimal(data.getRegisteredCapital()));
             }
             organization.setEmployeeCount(data.getEmployeeCount());
@@ -320,10 +334,15 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
             organization.setWebsite(data.getWebsite());
             organization.setIntroduction(data.getIntroduction());
 
+            log.info("Saving organization member...");
             organizationMemberRepository.save(organization);
+            log.info("Organization member saved successfully");
         } catch (JsonProcessingException e) {
             log.error("Failed to parse organization application data", e);
             throw new BusinessException("Failed to process organization member data");
+        } catch (Exception e) {
+            log.error("Unexpected error creating organization member", e);
+            throw e;
         }
     }
 

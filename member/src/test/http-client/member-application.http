@@ -1,0 +1,107 @@
+### Member application API - IntelliJ IDEA HTTP Client
+@baseUrl = {{baseUrl}}
+@memberBase = {{baseUrl}}/api/members
+@contentType = application/json
+
+# Update the usernames/emails if they already exist in your environment.
+@individualUsername = member_user_001
+@individualEmail = member_user_001@example.com
+@individualPassword = password123
+@individualPhone = 13800000001
+
+@organizationUsername = member_org_001
+@organizationEmail = member_org_001@example.com
+@organizationPassword = password123
+@organizationPhone = 13800000002
+
+###############################################################################
+### Public member application endpoints
+###############################################################################
+
+### Check username availability (individual)
+GET {{memberBase}}/check-username?username={{individualUsername}}
+
+### Check email availability (individual)
+GET {{memberBase}}/check-email?email={{individualEmail}}
+
+### Submit individual member application
+# @name submitIndividualApplication
+POST {{memberBase}}/apply
+Content-Type: {{contentType}}
+
+{
+  "memberType": "INDIVIDUAL",
+  "username": "{{individualUsername}}",
+  "password": "{{individualPassword}}",
+  "email": "{{individualEmail}}",
+  "phone": "{{individualPhone}}",
+  "individualData": {
+    "name": "Test User",
+    "gender": "Female",
+    "idCard": "110101199001010000",
+    "organization": "Example Org",
+    "position": "Engineer",
+    "title": "Senior Engineer",
+    "expertise": ["Hydraulics", "Pipeline"],
+    "province": "Guangdong",
+    "city": "Shenzhen",
+    "address": "No. 1 Example Rd",
+    "education": "Master",
+    "experience": "10 years",
+    "achievements": "Published papers",
+    "recommendation": "Recommended by peers"
+  }
+}
+
+> {%
+  client.global.set("individualApplicationId", response.body.data.id);
+%}
+
+### Get individual application status
+GET {{memberBase}}/application/{{individualApplicationId}}/status
+
+### Check username availability (organization)
+GET {{memberBase}}/check-username?username={{organizationUsername}}
+
+### Check email availability (organization)
+GET {{memberBase}}/check-email?email={{organizationEmail}}
+
+### Submit organization member application
+# @name submitOrganizationApplication
+POST {{memberBase}}/apply
+Content-Type: {{contentType}}
+
+{
+  "memberType": "ORGANIZATION",
+  "username": "{{organizationUsername}}",
+  "password": "{{organizationPassword}}",
+  "email": "{{organizationEmail}}",
+  "phone": "{{organizationPhone}}",
+  "organizationData": {
+    "orgName": "Example Equipment Co.",
+    "orgType": "EQUIPMENT",
+    "socialCreditCode": "91310000123456789X",
+    "legalRepresentative": "Jane Doe",
+    "contactPerson": "John Smith",
+    "contactPhone": "13800000002",
+    "contactEmail": "{{organizationEmail}}",
+    "establishmentDate": "2010-05-20",
+    "registeredCapital": "5000000",
+    "employeeCount": 120,
+    "businessScope": "Equipment design and maintenance",
+    "qualifications": ["ISO9001", "ISO14001"],
+    "projects": ["Project A", "Project B"],
+    "province": "Jiangsu",
+    "city": "Nanjing",
+    "address": "No. 2 Industry Ave",
+    "website": "https://example.com",
+    "introduction": "Sample organization application"
+  }
+}
+
+> {%
+  client.global.set("organizationApplicationId", response.body.data.id);
+%}
+
+### Get organization application status
+GET {{memberBase}}/application/{{organizationApplicationId}}/status

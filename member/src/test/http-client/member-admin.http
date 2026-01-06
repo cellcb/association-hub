@@ -1,0 +1,181 @@
+### Member admin API - IntelliJ IDEA HTTP Client
+@baseUrl = {{baseUrl}}
+@iamBase = {{baseUrl}}/api/iam
+@memberAdminBase = {{baseUrl}}/api/admin/members
+@contentType = application/json
+
+# Run member-application.http first to populate application IDs.
+
+###############################################################################
+### Authentication
+###############################################################################
+
+### Login and capture access token
+POST {{iamBase}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+###############################################################################
+### Application management
+###############################################################################
+
+### List applications
+GET {{memberAdminBase}}/applications
+Authorization: Bearer {{accessToken}}
+
+### Get individual application by ID
+GET {{memberAdminBase}}/applications/{{individualApplicationId}}
+Authorization: Bearer {{accessToken}}
+
+### Get organization application by ID
+GET {{memberAdminBase}}/applications/{{organizationApplicationId}}
+Authorization: Bearer {{accessToken}}
+
+### Search applications by keyword
+GET {{memberAdminBase}}/applications/search?keyword=member
+Authorization: Bearer {{accessToken}}
+
+### Filter applications by status
+GET {{memberAdminBase}}/applications/by-status/PENDING
+Authorization: Bearer {{accessToken}}
+
+### Filter applications by member type
+GET {{memberAdminBase}}/applications/by-type/INDIVIDUAL
+Authorization: Bearer {{accessToken}}
+
+### Approve individual application
+# @name approveIndividualApplication
+POST {{memberAdminBase}}/applications/{{individualApplicationId}}/approve
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.global.set("individualMemberId", response.body.data.id);
+  client.global.set("individualMemberNo", response.body.data.memberNo);
+  client.global.set("individualUserId", response.body.data.userId);
+%}
+
+### Approve organization application
+# @name approveOrganizationApplication
+POST {{memberAdminBase}}/applications/{{organizationApplicationId}}/approve
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.global.set("organizationMemberId", response.body.data.id);
+  client.global.set("organizationMemberNo", response.body.data.memberNo);
+  client.global.set("organizationUserId", response.body.data.userId);
+%}
+
+### Reject application (use on a pending application)
+POST {{memberAdminBase}}/applications/{{individualApplicationId}}/reject?reason=Missing%20documents
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+### Member management
+###############################################################################
+
+### Member statistics
+GET {{memberAdminBase}}/stats
+Authorization: Bearer {{accessToken}}
+
+### List members
+GET {{memberAdminBase}}
+Authorization: Bearer {{accessToken}}
+
+### Search members by keyword
+GET {{memberAdminBase}}/search?keyword=member
+Authorization: Bearer {{accessToken}}
+
+### Filter members by status
+GET {{memberAdminBase}}/by-status/ACTIVE
+Authorization: Bearer {{accessToken}}
+
+### Filter members by type
+GET {{memberAdminBase}}/by-type/ORGANIZATION
+Authorization: Bearer {{accessToken}}
+
+### Get individual member by ID
+GET {{memberAdminBase}}/{{individualMemberId}}
+Authorization: Bearer {{accessToken}}
+
+### Get organization member by ID
+GET {{memberAdminBase}}/{{organizationMemberId}}
+Authorization: Bearer {{accessToken}}
+
+### Get member by user ID
+GET {{memberAdminBase}}/by-user/{{individualUserId}}
+Authorization: Bearer {{accessToken}}
+
+### Get member by member number
+GET {{memberAdminBase}}/by-no/{{individualMemberNo}}
+Authorization: Bearer {{accessToken}}
+
+### Update individual member
+PUT {{memberAdminBase}}/{{individualMemberId}}/individual
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated User",
+  "gender": "Male",
+  "phone": "13800000011",
+  "email": "updated_member_user@example.com",
+  "organization": "Updated Org",
+  "position": "Lead Engineer",
+  "title": "Principal Engineer",
+  "expertise": ["Materials", "Testing"],
+  "province": "Zhejiang",
+  "city": "Hangzhou",
+  "address": "No. 3 Example Rd",
+  "education": "PhD",
+  "experience": "12 years",
+  "achievements": "Awarded industry prize",
+  "recommendation": "Recommended by committee",
+  "avatar": "https://example.com/avatar.png"
+}
+
+### Update organization member
+PUT {{memberAdminBase}}/{{organizationMemberId}}/organization
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "orgName": "Updated Equipment Co.",
+  "orgType": "EQUIPMENT",
+  "socialCreditCode": "91310000987654321X",
+  "legalRepresentative": "Alice Johnson",
+  "contactPerson": "Bob Lee",
+  "contactPhone": "13800000022",
+  "contactEmail": "org_contact@example.com",
+  "establishmentDate": "2012-09-01",
+  "registeredCapital": 8000000,
+  "employeeCount": 150,
+  "businessScope": "Updated scope",
+  "qualifications": ["ISO45001"],
+  "projects": ["Project C"],
+  "province": "Sichuan",
+  "city": "Chengdu",
+  "address": "No. 9 Industry Ave",
+  "website": "https://example.org",
+  "introduction": "Updated organization profile",
+  "logo": "https://example.org/logo.png"
+}
+
+### Suspend member
+POST {{memberAdminBase}}/{{individualMemberId}}/suspend
+Authorization: Bearer {{accessToken}}
+
+### Activate member
+POST {{memberAdminBase}}/{{individualMemberId}}/activate
+Authorization: Bearer {{accessToken}}
+
+### Delete member (use with caution)
+DELETE {{memberAdminBase}}/{{individualMemberId}}
+Authorization: Bearer {{accessToken}}

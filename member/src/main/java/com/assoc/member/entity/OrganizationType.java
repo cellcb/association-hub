@@ -25,6 +25,11 @@ public enum OrganizationType {
     DESIGN("design", "设计单位"),
 
     /**
+     * Management unit
+     */
+    MANAGEMENT("management", "管理单位"),
+
+    /**
      * Other
      */
     OTHER("other", "其他");
