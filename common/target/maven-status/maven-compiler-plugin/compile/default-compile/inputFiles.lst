@@ -1,4 +1,5 @@
 /Users/cell/ws/project/association-hub/common/src/main/java/com/assoc/common/entity/AuditableEntity.java
+/Users/cell/ws/project/association-hub/common/src/main/java/com/assoc/common/exception/ResourceNotFoundException.java
 /Users/cell/ws/project/association-hub/common/src/main/java/com/assoc/common/notification/NotificationChannel.java
 /Users/cell/ws/project/association-hub/common/src/main/java/com/assoc/common/notification/NotificationRequest.java
 /Users/cell/ws/project/association-hub/common/src/main/java/com/assoc/common/audit/Audit.java

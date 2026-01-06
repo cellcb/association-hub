@@ -22,7 +22,23 @@ public class SecurityWhitelist {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/error",
-            "/favicon.ico"
+            "/favicon.ico",
+            // Member module - public endpoints
+            "/api/members/apply",
+            "/api/members/check-username",
+            "/api/members/application/*/status",
+            // CMS module - public endpoints
+            "/api/news/**",
+            "/api/experts/**",
+            "/api/projects/**",
+            "/api/tags/**",
+            "/api/expertise-fields/**",
+            "/api/comments/*/like",
+            "/api/comments/*/reply",
+            // Activity module - public endpoints
+            "/api/activities/**",
+            // Product module - public endpoints
+            "/api/products/**"
     );
 
     private static final List<String> PERMISSION_EXEMPT_PATTERNS =

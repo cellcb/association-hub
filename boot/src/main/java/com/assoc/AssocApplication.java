@@ -6,10 +6,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class WaterPlatformApplication {
+public class AssocApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(WaterPlatformApplication.class, args);
+        SpringApplication.run(AssocApplication.class, args);
     }
 }
 

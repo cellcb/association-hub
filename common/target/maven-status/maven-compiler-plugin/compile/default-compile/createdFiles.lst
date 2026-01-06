@@ -13,6 +13,7 @@ com/assoc/common/audit/AuditContext.class
 com/assoc/common/security/SecurityWhitelist.class
 com/assoc/common/audit/AuditEvent.class
 com/assoc/common/storage/FileStorageException.class
+com/assoc/common/exception/ResourceNotFoundException.class
 com/assoc/common/audit/AuditResultStatus.class
 com/assoc/common/context/RequestContextHolder.class
 com/assoc/common/Result.class

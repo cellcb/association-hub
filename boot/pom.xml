@@ -68,6 +68,26 @@
             <artifactId>scheduler</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.assoc</groupId>
+            <artifactId>member</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.assoc</groupId>
+            <artifactId>cms</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.assoc</groupId>
+            <artifactId>activity</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.assoc</groupId>
+            <artifactId>product</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Utilities -->
         <dependency>
@@ -123,7 +143,7 @@
                         <version>0.10.2</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <mainClass>com.assoc.WaterPlatformApplication</mainClass>
+                            <mainClass>com.assoc.AssocApplication</mainClass>
                             <imageName>${project.build.finalName}</imageName>
                         </configuration>
                         <executions>

@@ -1,3 +1,4 @@
+com/assoc/AssocApplication.class
 com/assoc/config/AuditConfiguration.class
 com/assoc/audit/AuditRetentionScheduler.class
 com/assoc/boot/config/SpringDataWebConfig.class
@@ -6,4 +7,3 @@ com/assoc/config/AuditProperties$Async.class
 com/assoc/audit/AuditEventListener.class
 com/assoc/config/AuditProperties.class
 com/assoc/boot/config/OpenApiConfig.class
-com/assoc/WaterPlatformApplication.class

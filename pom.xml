@@ -22,6 +22,10 @@
         <module>iam</module>
         <module>common</module>
         <module>scheduler</module>
+        <module>member</module>
+        <module>cms</module>
+        <module>activity</module>
+        <module>product</module>
         <module>boot</module>
     </modules>
 
