@@ -112,3 +112,4 @@ upload/
 # Database files (local dev)
 *.db
 *.sqlite
+web/dist
