@@ -1,54 +1,81 @@
-# Repository Guidelines
+# CLAUDE.md
 
-- YOU MUST: when the task is completed or when returning a message to the user, execute the command `play -q /Users/cell/ws/zelda.mp3` exactly once at the end as a notification.%
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Structure & Module Organization
-- Maven aggregator with modules such as `boot/` (entrypoint), `common/` (shared libs), and business modules `iam/`, `tenant/`, `kb/`, `facility/`, `system/`, `rule/`.
-- Each module follows `src/main/java` and `src/main/resources`; Flyway scripts live under `src/main/resources/db/migration/{module}`; tests sit in module-level `src/test/java` with H2 configs in `iam/src/test/resources/application-test.yml`.
-- Keep cross-cutting utilities in `common/`; avoid duplicating configuration outside `boot/application*.yml`.
 
-## Build, Test, and Development Commands
-- `./mvnw clean compile` cleans the reactor and compiles all modules with Java 17.
-- `./mvnw clean test` runs the full unit test suite; add `-pl module -am` to target a single module.
-- `make build|test|package` wraps the common Maven flows, while `make dev-run` is a shortcut for the dev server.
-- Package for deployment with `./mvnw clean package -DskipTests`; resulting jar lives in `boot/target/`.
+**后端 (Maven Multi-module)**
+- `boot/` - Spring Boot 启动入口，集中配置 (`application*.yml`)
+- `common/` - 共享工具库、异常层次、`Result<?>` 响应封装
+- `iam/` - 身份认证与访问管理 (JWT, 用户, 角色, 权限)
+- `member/` - 会员管理 (申请、审核、个人/单位会员)
+- `cms/` - 内容管理 (新闻、公告)
+- `activity/` - 活动管理
+- `product/` - 产品展示
+- `scheduler/` - 定时任务 (Quartz)
 
-## Development Startup
-- 后端启动: `cd boot && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev` (端口 8080)
-- 前端启动: `cd web && npm run dev` (端口 5173/5174)
-- 测试账户: `admin` / `123456`
+**前端 (`web/`)**
+- React 18 + Vite + TypeScript
+- Tailwind CSS 4.x + Radix UI 组件库
+- 目录结构: `src/app/` (页面组件), `src/lib/` (API), `src/types/` (类型定义)
 
-## Coding Style & Naming Conventions
-- Use four-space indentation, `com.assoc.<module>` packages, and Lombok for DTOs/entities when available.
-- REST controllers return `com.assoc.common.result.Result<?>`; propagate business errors with the shared exception hierarchy in `common/`.
-- Configuration stays conditional (`@ConditionalOnProperty`) and centralized in `boot`; modules expose auto-configuration only when necessary.
+## Build & Development Commands
 
-## Architecture
-- Entity base class: `AuditableEntity` provides `createdTime`, `updatedTime`, `createdBy`, `updatedBy` fields.
+```bash
+# 后端
+./mvnw clean compile                    # 编译所有模块
+./mvnw clean test                       # 运行测试
+./mvnw test -pl iam -am                 # 单模块测试
+./mvnw test -Dtest=AuthServiceTest      # 单类测试
+./mvnw clean package -DskipTests        # 打包 (输出: boot/target/)
 
-## Testing Guidelines
-- Tests rely on Spring Boot Test + JUnit 5, with H2 and Testcontainers available for database coverage.
-- Name fast tests `*Test` and integration suites `*IntegrationTest`; place supporting SQL or YAML under the matching module `src/test/resources`.
-- Typical flows: `./mvnw test -Dtest=AuthServiceTest` for a class, `./mvnw test -Dtest=*IntegrationTest` for integration coverage.
+# 后端启动 (端口 8080)
+cd boot && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
-## Commit & Pull Request Guidelines
-- Mirror existing history: short, imperative commits (`Add rule management module`, `Update default admin password`).
-- Reference modules or features touched, squash noisy WIP commits locally, and ensure builds pass before pushing.
-- Pull requests should describe scope, list validation (commands run, data seeded), attach API or UI evidence if behavior shifts, and link tracking issues.
+# 前端
+cd web && npm install && npm run dev    # 启动 (端口 5173)
+cd web && npm run build                 # 构建
+```
 
-## Database Setup
-- PostgreSQL container ID: `11b02bdb5c8c`
-- Database name: `assoc`
-- Username: `assoc`
-- Password: `assoc`
-- Connection URL: `jdbc:postgresql://localhost:5432/assoc`
-- Create user and database:
-  ```bash
-  docker exec -i 11b02bdb5c8c psql -U wp -c "CREATE USER assoc WITH PASSWORD 'assoc' CREATEDB;"
-  docker exec -i 11b02bdb5c8c psql -U wp -c "CREATE DATABASE assoc OWNER assoc;"
-  ```
+**测试账户**: `admin` / `123456`
 
-## Security & Configuration Tips
-- Set `SPRING_PROFILES_ACTIVE`, `DB_USERNAME`, `DB_PASSWORD`, and a 256-bit `JWT_SECRET` before running outside tests.
-- Default admin credentials (`admin` / `123456`) exist for bootstrap only—rotate them in every deployed environment.
-- Dockerised Postgres runs as `water-db-1`; align Flyway schema settings in `boot/application*.yml` when adding modules.
+## Architecture Notes
+
+**Entity 基类**
+- `AuditableEntity` 提供 `createdTime`, `updatedTime`, `createdBy`, `updatedBy`
+
+**API 响应格式**
+- REST 控制器统一返回 `com.assoc.common.Result<?>`
+- 业务异常使用 `common/` 中的异常层次
+
+**Spring Boot 3.x 分页数据格式** (重要)
+```json
+{
+  "data": {
+    "content": [...],
+    "page": {
+      "size": 10,
+      "number": 0,
+      "totalElements": 14,
+      "totalPages": 2
+    }
+  }
+}
+```
+前端 `Page<T>` 类型需匹配此嵌套结构: `{ content: T[]; page: PageMetadata }`
+
+## Coding Conventions
+
+- 四空格缩进，包名 `com.assoc.<module>`
+- 使用 Lombok 简化 DTO/Entity
+- Flyway 脚本: `src/main/resources/db/migration/{module}/`
+- 配置集中在 `boot/`，使用 `@ConditionalOnProperty` 做条件配置
+
+## Database
+
+- PostgreSQL (Docker): `jdbc:postgresql://localhost:5432/assoc`
+- 用户名/密码: `assoc` / `assoc`
+
+## Commit Style
+
+短小、祈使语气: `Add member management module`, `Fix pagination display issue`

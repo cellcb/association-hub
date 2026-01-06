@@ -43,4 +43,7 @@ public class UserRequest {
     
     @Schema(description = "角色ID列表", example = "[1, 2]")
     private Set<Long> roleIds;
+
+    @Schema(description = "密码是否已加密", hidden = true)
+    private boolean passwordEncrypted = false;
 }

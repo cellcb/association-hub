@@ -194,3 +194,198 @@ export async function checkEmail(email: string): Promise<Result<boolean>> {
   );
   return response.json();
 }
+
+// ========== Admin Member Management API ==========
+
+import type {
+  Page,
+  PageParams,
+  MemberResponse,
+  MemberApplicationResponse,
+  MemberStatsResponse,
+  MemberType,
+  MemberStatus,
+  ApplicationStatus,
+  IndividualMemberUpdateRequest,
+  OrganizationMemberUpdateRequest,
+} from '@/types/member';
+
+/**
+ * 构建分页查询参数
+ */
+function buildPageParams(params?: PageParams): string {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  return searchParams.toString();
+}
+
+/**
+ * 获取会员列表
+ */
+export async function getMembers(params?: PageParams): Promise<Result<Page<MemberResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取会员详情
+ */
+export async function getMemberById(id: number): Promise<Result<MemberResponse>> {
+  return request(`/admin/members/${id}`);
+}
+
+/**
+ * 搜索会员
+ */
+export async function searchMembers(
+  keyword: string,
+  params?: PageParams
+): Promise<Result<Page<MemberResponse>>> {
+  const query = buildPageParams(params);
+  const keywordParam = `keyword=${encodeURIComponent(keyword)}`;
+  return request(`/admin/members/search?${keywordParam}${query ? `&${query}` : ''}`);
+}
+
+/**
+ * 按状态获取会员
+ */
+export async function getMembersByStatus(
+  status: MemberStatus,
+  params?: PageParams
+): Promise<Result<Page<MemberResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members/by-status/${status}${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 按类型获取会员
+ */
+export async function getMembersByType(
+  type: MemberType,
+  params?: PageParams
+): Promise<Result<Page<MemberResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members/by-type/${type}${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 更新个人会员
+ */
+export async function updateIndividualMember(
+  id: number,
+  data: IndividualMemberUpdateRequest
+): Promise<Result<MemberResponse>> {
+  return request(`/admin/members/${id}/individual`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新单位会员
+ */
+export async function updateOrganizationMember(
+  id: number,
+  data: OrganizationMemberUpdateRequest
+): Promise<Result<MemberResponse>> {
+  return request(`/admin/members/${id}/organization`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 暂停会员
+ */
+export async function suspendMember(id: number): Promise<Result<void>> {
+  return request(`/admin/members/${id}/suspend`, { method: 'POST' });
+}
+
+/**
+ * 激活会员
+ */
+export async function activateMember(id: number): Promise<Result<void>> {
+  return request(`/admin/members/${id}/activate`, { method: 'POST' });
+}
+
+/**
+ * 删除会员
+ */
+export async function deleteMember(id: number): Promise<Result<void>> {
+  return request(`/admin/members/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 获取会员统计
+ */
+export async function getMemberStats(): Promise<Result<MemberStatsResponse>> {
+  return request('/admin/members/stats');
+}
+
+// ========== Admin Application Management API ==========
+
+/**
+ * 获取申请列表
+ */
+export async function getApplications(params?: PageParams): Promise<Result<Page<MemberApplicationResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members/applications${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取申请详情
+ */
+export async function getApplicationById(id: number): Promise<Result<MemberApplicationResponse>> {
+  return request(`/admin/members/applications/${id}`);
+}
+
+/**
+ * 搜索申请
+ */
+export async function searchApplications(
+  keyword: string,
+  params?: PageParams
+): Promise<Result<Page<MemberApplicationResponse>>> {
+  const query = buildPageParams(params);
+  const keywordParam = `keyword=${encodeURIComponent(keyword)}`;
+  return request(`/admin/members/applications/search?${keywordParam}${query ? `&${query}` : ''}`);
+}
+
+/**
+ * 按状态获取申请
+ */
+export async function getApplicationsByStatus(
+  status: ApplicationStatus,
+  params?: PageParams
+): Promise<Result<Page<MemberApplicationResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members/applications/by-status/${status}${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 按会员类型获取申请
+ */
+export async function getApplicationsByMemberType(
+  type: MemberType,
+  params?: PageParams
+): Promise<Result<Page<MemberApplicationResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/members/applications/by-type/${type}${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 审核通过申请
+ */
+export async function approveApplication(id: number): Promise<Result<MemberResponse>> {
+  return request(`/admin/members/applications/${id}/approve`, { method: 'POST' });
+}
+
+/**
+ * 审核拒绝申请
+ */
+export async function rejectApplication(id: number, reason?: string): Promise<Result<void>> {
+  const query = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+  return request(`/admin/members/applications/${id}/reject${query}`, { method: 'POST' });
+}

@@ -146,7 +146,8 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         // 1. Create IAM user account
         UserRequest userRequest = new UserRequest();
         userRequest.setUsername(application.getUsername());
-        userRequest.setPassword(application.getPassword()); // Already encrypted
+        userRequest.setPassword(application.getPassword());
+        userRequest.setPasswordEncrypted(true); // 标记密码已加密，避免二次加密
         userRequest.setEmail(application.getEmail());
         userRequest.setPhone(application.getPhone());
         userRequest.setStatus(1); // Active

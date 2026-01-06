@@ -54,7 +54,12 @@ public class UserServiceImpl implements UserService {
         // 创建用户实体
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        // 判断密码是否已加密，避免二次加密
+        if (request.isPasswordEncrypted()) {
+            user.setPassword(request.getPassword());
+        } else {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setRealName(request.getRealName());
