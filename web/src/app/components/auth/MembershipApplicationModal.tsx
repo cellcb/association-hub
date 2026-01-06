@@ -353,49 +353,45 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                 </div>
 
                 {/* Account Info */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-amber-800 mb-3 flex items-center gap-2">
-                    <UserCircle className="w-4 h-4" />
-                    设置登录账户
-                  </h4>
-                  <div className="space-y-3">
+                <div className="space-y-4">
+                  <h3 className="text-lg text-gray-900 mb-4">设置登录账户</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-gray-700 mb-1">用户名 *</label>
+                      <label className="block text-sm text-gray-700 mb-2">用户名 *</label>
                       <input
                         type="text"
                         required
                         value={accountForm.username}
                         onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="设置登录用户名（至少3位）"
                         minLength={3}
                       />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">密码 *</label>
-                        <input
-                          type="password"
-                          required
-                          value={accountForm.password}
-                          onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="设置密码（至少6位）"
-                          minLength={6}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">确认密码 *</label>
-                        <input
-                          type="password"
-                          required
-                          value={accountForm.confirmPassword}
-                          onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="再次输入密码"
-                          minLength={6}
-                        />
-                      </div>
+                    <div></div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-2">密码 *</label>
+                      <input
+                        type="password"
+                        required
+                        value={accountForm.password}
+                        onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="设置密码（至少6位）"
+                        minLength={6}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-2">确认密码 *</label>
+                      <input
+                        type="password"
+                        required
+                        value={accountForm.confirmPassword}
+                        onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="再次输入密码"
+                        minLength={6}
+                      />
                     </div>
                   </div>
                 </div>
