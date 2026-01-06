@@ -41,7 +41,7 @@ public class AuthService {
             );
             
             // Get user with roles and permissions
-            User user = userRepository.findActiveUserWithRolesAndPermissions(loginRequest.getUsername())
+            User user = userRepository.findActiveUserByUsernameOrEmailWithRolesAndPermissions(loginRequest.getUsername())
                     .orElseThrow(() -> new AuthenticationException("用户不存在或已被禁用"));
             
             // Update last login time

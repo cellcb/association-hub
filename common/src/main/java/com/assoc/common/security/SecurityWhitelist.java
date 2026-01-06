@@ -26,6 +26,7 @@ public class SecurityWhitelist {
             // Member module - public endpoints
             "/api/members/apply",
             "/api/members/check-username",
+            "/api/members/check-email",
             "/api/members/application/*/status",
             // CMS module - public endpoints
             "/api/news/**",

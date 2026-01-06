@@ -2,6 +2,7 @@ import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, New
 import { useState } from 'react';
 import { PageType } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   currentPage: PageType;
@@ -10,10 +11,9 @@ interface HeaderProps {
 }
 
 export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
+  const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // 默认已登录状态（测试用）
-  const [userName, setUserName] = useState('张三');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navItems = [
@@ -66,14 +66,14 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
               <Settings className="w-4 h-4" />
               管理后台
             </button>
-            {isLoggedIn ? (
+            {isAuthenticated && user ? (
               <div className="relative ml-4">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
                   <UserCircle className="w-4 h-4" />
-                  {userName}
+                  {user.realName || user.username}
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {userMenuOpen && (
@@ -91,8 +91,8 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                     <div className="border-t border-gray-100 my-1"></div>
                     <button
                       className="w-full px-4 py-2 text-left text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
-                      onClick={() => {
-                        setIsLoggedIn(false);
+                      onClick={async () => {
+                        await logout();
                         setUserMenuOpen(false);
                       }}
                     >
@@ -152,7 +152,7 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
               <Settings className="w-5 h-5" />
               管理后台
             </button>
-            {isLoggedIn ? (
+            {isAuthenticated && user ? (
               <div className="mt-2 border-t border-gray-100 pt-4">
                 <button
                   onClick={() => {
@@ -165,8 +165,8 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                   个人中心
                 </button>
                 <button
-                  onClick={() => {
-                    setIsLoggedIn(false);
+                  onClick={async () => {
+                    await logout();
                     setMobileMenuOpen(false);
                   }}
                   className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
@@ -191,7 +191,6 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
         isOpen={loginModalOpen}
         onClose={() => setLoginModalOpen(false)}
         onLoginSuccess={() => {
-          setIsLoggedIn(true);
           setLoginModalOpen(false);
         }}
       />

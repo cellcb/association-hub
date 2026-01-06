@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, Briefcase, Award, FileText, CheckCircle, Upload } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, Briefcase, Award, FileText, CheckCircle, Upload, Loader2, Lock, UserCircle } from 'lucide-react';
+import { submitMemberApplication, checkUsername, checkEmail } from '@/lib/api';
+import type { MemberApplicationRequest } from '@/types/auth';
 
 interface MembershipApplicationModalProps {
   isOpen: boolean;
@@ -14,6 +16,15 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
   const [memberType, setMemberType] = useState<MemberType>('individual');
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Account credentials (required for registration)
+  const [accountForm, setAccountForm] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+  });
 
   // Individual member form data
   const [individualForm, setIndividualForm] = useState({
@@ -73,23 +84,168 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
 
   if (!isOpen) return null;
 
-  const handleIndividualSubmit = (e: React.FormEvent) => {
+  const handleIndividualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentStep < 3) {
+    setError('');
+
+    // 第一步验证用户名和密码
+    if (currentStep === 1) {
+      if (!accountForm.username || accountForm.username.length < 3) {
+        setError('用户名至少3位');
+        return;
+      }
+      if (!accountForm.password || accountForm.password.length < 6) {
+        setError('密码长度至少6位');
+        return;
+      }
+      if (accountForm.password !== accountForm.confirmPassword) {
+        setError('两次输入的密码不一致');
+        return;
+      }
       setCurrentStep(currentStep + 1);
-    } else {
-      console.log('Individual application submitted:', individualForm);
-      setIsSubmitted(true);
+      return;
+    }
+
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 检查用户名是否可用
+      const usernameResult = await checkUsername(accountForm.username);
+      if (!usernameResult.data) {
+        setError('用户名已被使用');
+        setIsLoading(false);
+        return;
+      }
+
+      // 检查邮箱是否可用
+      const emailResult = await checkEmail(individualForm.email);
+      if (!emailResult.data) {
+        setError('邮箱已被注册');
+        setIsLoading(false);
+        return;
+      }
+
+      const request: MemberApplicationRequest = {
+        memberType: 'INDIVIDUAL',
+        username: accountForm.username,
+        password: accountForm.password,
+        email: individualForm.email,
+        phone: individualForm.phone,
+        individualData: {
+          name: individualForm.name,
+          gender: individualForm.gender,
+          idCard: individualForm.idCard,
+          organization: individualForm.organization,
+          position: individualForm.position,
+          title: individualForm.title,
+          expertise: individualForm.expertise,
+          province: individualForm.province,
+          city: individualForm.city,
+          address: individualForm.address,
+          education: individualForm.education,
+          experience: individualForm.experience,
+          achievements: individualForm.achievements,
+          recommendation: individualForm.recommendation,
+        },
+      };
+
+      const result = await submitMemberApplication(request);
+      if (result.success) {
+        setIsSubmitted(true);
+      } else {
+        setError(result.message || '提交失败，请稍后重试');
+      }
+    } catch {
+      setError('网络错误，请稍后重试');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleOrganizationSubmit = (e: React.FormEvent) => {
+  const handleOrganizationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentStep < 3) {
+    setError('');
+
+    // 第一步验证用户名和密码
+    if (currentStep === 1) {
+      if (!accountForm.username || accountForm.username.length < 3) {
+        setError('用户名至少3位');
+        return;
+      }
+      if (!accountForm.password || accountForm.password.length < 6) {
+        setError('密码长度至少6位');
+        return;
+      }
+      if (accountForm.password !== accountForm.confirmPassword) {
+        setError('两次输入的密码不一致');
+        return;
+      }
       setCurrentStep(currentStep + 1);
-    } else {
-      console.log('Organization application submitted:', organizationForm);
-      setIsSubmitted(true);
+      return;
+    }
+
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 检查用户名是否可用
+      const usernameResult = await checkUsername(accountForm.username);
+      if (!usernameResult.data) {
+        setError('用户名已被使用');
+        setIsLoading(false);
+        return;
+      }
+
+      // 检查邮箱是否可用
+      const emailResult = await checkEmail(organizationForm.contactEmail);
+      if (!emailResult.data) {
+        setError('邮箱已被注册');
+        setIsLoading(false);
+        return;
+      }
+
+      const request: MemberApplicationRequest = {
+        memberType: 'ORGANIZATION',
+        username: accountForm.username,
+        password: accountForm.password,
+        email: organizationForm.contactEmail,
+        phone: organizationForm.contactPhone,
+        organizationData: {
+          orgName: organizationForm.organizationName,
+          orgType: organizationForm.organizationType.toUpperCase(),
+          socialCreditCode: organizationForm.socialCreditCode,
+          legalRepresentative: organizationForm.legalRepresentative,
+          contactPerson: organizationForm.contactPerson,
+          contactPhone: organizationForm.contactPhone,
+          contactEmail: organizationForm.contactEmail,
+          establishmentDate: organizationForm.establishmentDate,
+          registeredCapital: organizationForm.registeredCapital,
+          employeeCount: organizationForm.employeeCount ? parseInt(organizationForm.employeeCount) : undefined,
+          province: organizationForm.province,
+          city: organizationForm.city,
+          address: organizationForm.address,
+          website: organizationForm.website,
+          introduction: organizationForm.introduction,
+        },
+      };
+
+      const result = await submitMemberApplication(request);
+      if (result.success) {
+        setIsSubmitted(true);
+      } else {
+        setError(result.message || '提交失败，请稍后重试');
+      }
+    } catch {
+      setError('网络错误，请稍后重试');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -144,107 +300,135 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
 
         {!isSubmitted ? (
           <div className="p-6 max-h-[70vh] overflow-y-auto">
-            {/* Member Type Selector */}
+            {/* Step 1: Member Type & Account */}
             {currentStep === 1 && (
-              <div className="mb-6">
-                <h3 className="text-lg text-gray-900 mb-4">选择会员类型</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setMemberType('individual')}
-                    className={`p-6 rounded-xl border-2 transition-all text-left ${
-                      memberType === 'individual'
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        memberType === 'individual' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <User className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-lg text-gray-900 mb-1">个人会员</div>
-                        <div className="text-sm text-gray-600">
-                          适合行业专家、技术人员、设计师等专业人士
+              <div className="mb-6 space-y-6">
+                <div>
+                  <h3 className="text-lg text-gray-900 mb-4">选择会员类型</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setMemberType('individual')}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        memberType === 'individual'
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          memberType === 'individual' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <User className="w-5 h-5" />
                         </div>
-                        <div className="mt-3 space-y-1">
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            参与所有技术活动
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            专家资源库展示
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            技术资料下载
-                          </div>
+                        <div>
+                          <div className="font-medium text-gray-900">个人会员</div>
+                          <div className="text-xs text-gray-500">专家、技术人员、设计师</div>
                         </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
 
-                  <button
-                    onClick={() => setMemberType('organization')}
-                    className={`p-6 rounded-xl border-2 transition-all text-left ${
-                      memberType === 'organization'
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        memberType === 'organization' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <Building2 className="w-6 h-6" />
+                    <button
+                      type="button"
+                      onClick={() => setMemberType('organization')}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        memberType === 'organization'
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          memberType === 'organization' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">单位会员</div>
+                          <div className="text-xs text-gray-500">企业、事业单位、科研机构</div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="text-lg text-gray-900 mb-1">单位会员</div>
-                        <div className="text-sm text-gray-600">
-                          适合企业、事业单位、科研机构等组织
-                        </div>
-                        <div className="mt-3 space-y-1">
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            品牌展示与推广
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            产品技术推广
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            供需对接服务
-                          </div>
-                        </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Account Info */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-amber-800 mb-3 flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" />
+                    设置登录账户
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">用户名 *</label>
+                      <input
+                        type="text"
+                        required
+                        value={accountForm.username}
+                        onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="设置登录用户名（至少3位）"
+                        minLength={3}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">密码 *</label>
+                        <input
+                          type="password"
+                          required
+                          value={accountForm.password}
+                          onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="设置密码（至少6位）"
+                          minLength={6}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">确认密码 *</label>
+                        <input
+                          type="password"
+                          required
+                          value={accountForm.confirmPassword}
+                          onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="再次输入密码"
+                          minLength={6}
+                        />
                       </div>
                     </div>
-                  </button>
+                  </div>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Progress Steps */}
             <div className="mb-8">
-              <div className="flex items-center justify-center gap-2 md:gap-4">
-                {[1, 2, 3].map((step) => (
+              <div className="flex items-center justify-center gap-1 md:gap-2">
+                {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${
+                    <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-sm ${
                       currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
                     }`}>
                       {step}
                     </div>
-                    {step < 3 && (
-                      <div className={`w-8 md:w-16 h-1 mx-1 ${
+                    {step < 4 && (
+                      <div className={`w-6 md:w-10 h-1 mx-1 ${
                         currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
                       }`}></div>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center gap-4 md:gap-8 mt-2">
+              <div className="flex justify-center gap-2 md:gap-6 mt-2">
+                <span className="text-xs text-gray-600">账户设置</span>
                 <span className="text-xs text-gray-600">基本信息</span>
                 <span className="text-xs text-gray-600">详细资料</span>
                 <span className="text-xs text-gray-600">确认提交</span>
@@ -254,11 +438,11 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
             {/* Individual Member Form */}
             {memberType === 'individual' && (
               <form onSubmit={handleIndividualSubmit} className="space-y-6">
-                {/* Step 1: Basic Info */}
-                {currentStep === 1 && (
+                {/* Step 2: Basic Info */}
+                {currentStep === 2 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">基本信息</h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm text-gray-700 mb-2">姓名 *</label>
@@ -342,8 +526,8 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                   </div>
                 )}
 
-                {/* Step 2: Detailed Info */}
-                {currentStep === 2 && (
+                {/* Step 3: Detailed Info */}
+                {currentStep === 3 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">详细资料</h3>
 
@@ -423,10 +607,18 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                   </div>
                 )}
 
-                {/* Step 3: Confirmation */}
-                {currentStep === 3 && (
+                {/* Step 4: Confirmation */}
+                {currentStep === 4 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">确认信息</h3>
+
+                    {/* Account Summary */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="text-sm font-medium text-amber-800 mb-2">登录账户</div>
+                      <div className="text-sm text-gray-700">用户名：{accountForm.username}</div>
+                    </div>
+
+                    {/* Summary */}
                     <div className="bg-gray-50 rounded-lg p-6 space-y-3">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -481,6 +673,13 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                       </div>
                     </div>
 
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
+
                     <label className="flex items-start gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -503,16 +702,23 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                     <button
                       type="button"
                       onClick={() => setCurrentStep(currentStep - 1)}
-                      className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                       上一步
                     </button>
                   )}
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
+                    disabled={isLoading}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {currentStep === 3 ? '提交申请' : '下一步'}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        提交中...
+                      </>
+                    ) : currentStep === 4 ? '提交申请' : '下一步'}
                   </button>
                 </div>
               </form>
@@ -521,11 +727,11 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
             {/* Organization Member Form */}
             {memberType === 'organization' && (
               <form onSubmit={handleOrganizationSubmit} className="space-y-6">
-                {/* Step 1: Basic Info */}
-                {currentStep === 1 && (
+                {/* Step 2: Basic Info */}
+                {currentStep === 2 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">基本信息</h3>
-                    
+
                     <div>
                       <label className="block text-sm text-gray-700 mb-2">单位名称 *</label>
                       <input
@@ -540,11 +746,11 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
 
                     <div>
                       <label className="block text-sm text-gray-700 mb-2">单位类型 *</label>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {organizationTypeOptions.map((type) => (
                           <label
                             key={type.value}
-                            className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
                               organizationForm.organizationType === type.value
                                 ? 'border-blue-600 bg-blue-50'
                                 : 'border-gray-200 hover:border-gray-300'
@@ -556,11 +762,11 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                               value={type.value}
                               checked={organizationForm.organizationType === type.value}
                               onChange={(e) => setOrganizationForm({ ...organizationForm, organizationType: e.target.value as OrganizationType })}
-                              className="w-5 h-5 mt-0.5 text-blue-600"
+                              className="w-4 h-4 mt-0.5 text-blue-600"
                             />
                             <div className="flex-1">
                               <div className="text-sm text-gray-900">{type.label}</div>
-                              <div className="text-xs text-gray-500 mt-1">{type.desc}</div>
+                              <div className="text-xs text-gray-500">{type.desc}</div>
                             </div>
                           </label>
                         ))}
@@ -613,8 +819,8 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                   </div>
                 )}
 
-                {/* Step 2: Detailed Info */}
-                {currentStep === 2 && (
+                {/* Step 3: Detailed Info */}
+                {currentStep === 3 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">详细资料</h3>
 
@@ -666,7 +872,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                     <div>
                       <label className="block text-sm text-gray-700 mb-2">单位简介</label>
                       <textarea
-                        rows={4}
+                        rows={3}
                         value={organizationForm.introduction}
                         onChange={(e) => setOrganizationForm({ ...organizationForm, introduction: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -687,10 +893,18 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                   </div>
                 )}
 
-                {/* Step 3: Confirmation */}
-                {currentStep === 3 && (
+                {/* Step 4: Confirmation */}
+                {currentStep === 4 && (
                   <div className="space-y-4">
                     <h3 className="text-lg text-gray-900 mb-4">确认信息</h3>
+
+                    {/* Account Summary */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="text-sm font-medium text-amber-800 mb-2">登录账户</div>
+                      <div className="text-sm text-gray-700">用户名：{accountForm.username}</div>
+                    </div>
+
+                    {/* Summary */}
                     <div className="bg-gray-50 rounded-lg p-6 space-y-3">
                       <div>
                         <div className="text-xs text-gray-500 mb-1">单位名称</div>
@@ -733,6 +947,13 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                       </div>
                     </div>
 
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
+
                     <label className="flex items-start gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -755,16 +976,23 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                     <button
                       type="button"
                       onClick={() => setCurrentStep(currentStep - 1)}
-                      className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                       上一步
                     </button>
                   )}
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
+                    disabled={isLoading}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {currentStep === 3 ? '提交申请' : '下一步'}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        提交中...
+                      </>
+                    ) : currentStep === 4 ? '提交申请' : '下一步'}
                   </button>
                 </div>
               </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Mail, Lock, Phone, User, Eye, EyeOff, Shield } from 'lucide-react';
+import { X, Mail, Lock, Phone, User, Eye, EyeOff, Shield, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,11 +12,14 @@ type LoginMethod = 'password' | 'sms';
 type MemberType = 'individual' | 'organization';
 
 export function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
+  const { login } = useAuth();
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
   const [memberType, setMemberType] = useState<MemberType>('individual');
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   // Form state
   const [formData, setFormData] = useState({
     email: '',
@@ -27,19 +31,40 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps)
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login submitted:', formData, memberType, loginMethod);
-    onLoginSuccess?.();
-    onClose();
+    setError('');
+
+    // 短信验证码登录暂不支持
+    if (loginMethod === 'sms') {
+      setError('短信验证码登录功能开发中，请使用密码登录');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await login({
+        username: formData.email,
+        password: formData.password,
+      });
+
+      if (result.success) {
+        onLoginSuccess?.();
+        onClose();
+      } else {
+        setError(result.message);
+      }
+    } catch {
+      setError('登录失败，请稍后重试');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log('Register submitted:', formData, memberType);
-    setIsRegistering(false);
+    // 注册功能通过会员申请流程完成
+    setError('请通过"入会申请"提交会员注册');
   };
 
   return (
@@ -232,12 +257,27 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps)
                   </div>
                 )}
 
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  登录
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      登录中...
+                    </>
+                  ) : (
+                    '登录'
+                  )}
                 </button>
               </form>
 

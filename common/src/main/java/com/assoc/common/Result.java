@@ -82,6 +82,13 @@ public class Result<T> implements Serializable {
         this.timestamp = timestamp;
     }
 
+    /**
+     * 判断是否成功（code == 200）
+     */
+    public boolean isSuccess() {
+        return code != null && code == 200;
+    }
+
     @Override
     public String toString() {
         return "Result{" +

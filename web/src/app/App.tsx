@@ -10,10 +10,11 @@ import { UserProfile } from './components/UserProfile';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'admin';
 
-export default function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -58,5 +59,13 @@ export default function App() {
       
       {!isAdmin && <Footer />}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

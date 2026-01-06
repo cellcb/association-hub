@@ -31,6 +31,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "LEFT JOIN FETCH r.permissions " +
            "WHERE u.username = :username AND u.status = 1")
     Optional<User> findActiveUserWithRolesAndPermissions(@Param("username") String username);
+
+    /**
+     * Find active user by username or email with roles and permissions
+     */
+    @Query("SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.roles r " +
+           "LEFT JOIN FETCH r.permissions " +
+           "WHERE (u.username = :identifier OR u.email = :identifier) AND u.status = 1")
+    Optional<User> findActiveUserByUsernameOrEmailWithRolesAndPermissions(@Param("identifier") String identifier);
     
     
     /**

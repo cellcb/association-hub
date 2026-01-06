@@ -20,14 +20,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.debug("Loading user by username: {}", username);
-        
-        User user = userRepository.findActiveUserWithRolesAndPermissions(username)
+        log.debug("Loading user by username or email: {}", username);
+
+        User user = userRepository.findActiveUserByUsernameOrEmailWithRolesAndPermissions(username)
                 .orElseThrow(() -> {
                     log.warn("User not found: {}", username);
                     return new UsernameNotFoundException("用户不存在或已被禁用: " + username);
                 });
-        
+
         return UserPrincipal.create(user);
     }
 }

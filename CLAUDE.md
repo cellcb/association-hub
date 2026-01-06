@@ -10,9 +10,13 @@
 ## Build, Test, and Development Commands
 - `./mvnw clean compile` cleans the reactor and compiles all modules with Java 17.
 - `./mvnw clean test` runs the full unit test suite; add `-pl module -am` to target a single module.
-- `cd boot && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev` starts the API locally with the dev profile.
 - `make build|test|package` wraps the common Maven flows, while `make dev-run` is a shortcut for the dev server.
 - Package for deployment with `./mvnw clean package -DskipTests`; resulting jar lives in `boot/target/`.
+
+## Development Startup
+- 后端启动: `cd boot && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev` (端口 8080)
+- 前端启动: `cd web && npm run dev` (端口 5173/5174)
+- 测试账户: `admin` / `123456`
 
 ## Coding Style & Naming Conventions
 - Use four-space indentation, `com.assoc.<module>` packages, and Lombok for DTOs/entities when available.
