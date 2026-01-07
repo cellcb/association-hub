@@ -66,9 +66,9 @@ public class Expert extends AuditableEntity {
     private String phone;
 
     /**
-     * Avatar URL
+     * Avatar (Base64 or URL)
      */
-    @Column(name = "avatar", length = 500)
+    @Column(name = "avatar", columnDefinition = "TEXT")
     private String avatar;
 
     /**

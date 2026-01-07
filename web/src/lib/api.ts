@@ -437,3 +437,68 @@ export async function createTag(name: string): Promise<Result<TagResponse>> {
     body: JSON.stringify({ name }),
   });
 }
+
+// ========== Admin Expert API ==========
+
+import type {
+  ExpertListResponse,
+  ExpertResponse,
+  ExpertRequest,
+  ExpertiseFieldResponse,
+} from '@/types/expert';
+
+/**
+ * 获取专家列表
+ */
+export async function getExperts(
+  params?: PageParams & { status?: number }
+): Promise<Result<Page<ExpertListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status !== undefined) searchParams.append('status', params.status.toString());
+  const query = searchParams.toString();
+  return request(`/admin/experts${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取专家详情
+ */
+export async function getExpertById(id: number): Promise<Result<ExpertResponse>> {
+  return request(`/admin/experts/${id}`);
+}
+
+/**
+ * 创建专家
+ */
+export async function createExpert(data: ExpertRequest): Promise<Result<ExpertResponse>> {
+  return request('/admin/experts', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新专家
+ */
+export async function updateExpert(id: number, data: ExpertRequest): Promise<Result<ExpertResponse>> {
+  return request(`/admin/experts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除专家
+ */
+export async function deleteExpert(id: number): Promise<Result<void>> {
+  return request(`/admin/experts/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 获取专业领域列表
+ */
+export async function getExpertiseFields(): Promise<Result<ExpertiseFieldResponse[]>> {
+  return request('/expertise-fields');
+}
