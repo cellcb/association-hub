@@ -29,8 +29,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./mvnw test -Dtest=AuthServiceTest      # 单类测试
 ./mvnw clean package -DskipTests        # 打包 (输出: boot/target/)
 
-# 后端启动 (端口 8080)
-cd boot && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+# 后端启动 (端口 8080) - 推荐使用 jar 方式
+./mvnw clean package -DskipTests && java -jar boot/target/*.jar --spring.profiles.active=dev
 
 # 前端
 cd web && npm install && npm run dev    # 启动 (端口 5173)
@@ -63,6 +63,15 @@ cd web && npm run build                 # 构建
 }
 ```
 前端 `Page<T>` 类型需匹配此嵌套结构: `{ content: T[]; page: PageMetadata }`
+
+## 多模块开发注意事项
+
+**Maven 类缓存问题**: 修改非 boot 模块代码后，`mvn spring-boot:run` 可能使用旧的类文件（从 `~/.m2` 缓存加载）。
+
+解决方案：
+- **推荐**: `mvn clean package -DskipTests` 后用 `java -jar` 运行
+- 或: `mvn clean install -DskipTests` 后再 `mvn spring-boot:run`
+- 验证编译: `javap -public target/classes/com/assoc/xxx/XxxController.class`
 
 ## Coding Conventions
 

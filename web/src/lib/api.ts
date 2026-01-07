@@ -345,3 +345,95 @@ export async function rejectApplication(id: number, reason?: string): Promise<Re
 export async function getPendingCount(): Promise<Result<number>> {
   return request('/admin/members/pending/count');
 }
+
+// ========== Admin News API ==========
+
+import type { NewsListResponse, NewsResponse, NewsRequest, NewsCategoryResponse, TagResponse } from '@/types/news';
+
+/**
+ * 获取新闻列表
+ */
+export async function getNewsList(
+  params?: PageParams & { status?: number; categoryId?: number }
+): Promise<Result<Page<NewsListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status !== undefined) searchParams.append('status', params.status.toString());
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  const query = searchParams.toString();
+  return request(`/admin/news${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取新闻详情
+ */
+export async function getNewsById(id: number): Promise<Result<NewsResponse>> {
+  return request(`/admin/news/${id}`);
+}
+
+/**
+ * 创建新闻
+ */
+export async function createNews(data: NewsRequest): Promise<Result<NewsResponse>> {
+  return request('/admin/news', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新新闻
+ */
+export async function updateNews(id: number, data: NewsRequest): Promise<Result<NewsResponse>> {
+  return request(`/admin/news/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除新闻
+ */
+export async function deleteNews(id: number): Promise<Result<void>> {
+  return request(`/admin/news/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 发布新闻
+ */
+export async function publishNews(id: number): Promise<Result<void>> {
+  return request(`/admin/news/${id}/publish`, { method: 'POST' });
+}
+
+/**
+ * 取消发布新闻
+ */
+export async function unpublishNews(id: number): Promise<Result<void>> {
+  return request(`/admin/news/${id}/unpublish`, { method: 'POST' });
+}
+
+/**
+ * 获取新闻分类列表
+ */
+export async function getNewsCategories(): Promise<Result<NewsCategoryResponse[]>> {
+  return request('/news/categories');
+}
+
+/**
+ * 获取所有标签
+ */
+export async function getTags(): Promise<Result<TagResponse[]>> {
+  return request('/tags');
+}
+
+/**
+ * 创建标签
+ */
+export async function createTag(name: string): Promise<Result<TagResponse>> {
+  return request('/tags', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
