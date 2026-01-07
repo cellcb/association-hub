@@ -561,3 +561,102 @@ export async function updateProject(id: number, data: ProjectRequest): Promise<R
 export async function deleteProject(id: number): Promise<Result<void>> {
   return request(`/admin/projects/${id}`, { method: 'DELETE' });
 }
+
+// ========== Admin Activity API ==========
+
+import type {
+  ActivityListResponse,
+  ActivityResponse,
+  ActivityRequest,
+  ActivityStatus,
+  ActivityType,
+  RegistrationResponse,
+  RegistrationStatus,
+} from '@/types/activity';
+
+/**
+ * 获取活动列表
+ */
+export async function getActivities(
+  params?: PageParams & { status?: ActivityStatus; type?: ActivityType }
+): Promise<Result<Page<ActivityListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status) searchParams.append('status', params.status);
+  if (params?.type) searchParams.append('type', params.type);
+  const query = searchParams.toString();
+  return request(`/admin/activities${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取活动详情
+ */
+export async function getActivityById(id: number): Promise<Result<ActivityResponse>> {
+  return request(`/admin/activities/${id}`);
+}
+
+/**
+ * 创建活动
+ */
+export async function createActivity(data: ActivityRequest): Promise<Result<ActivityResponse>> {
+  return request('/admin/activities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新活动
+ */
+export async function updateActivity(id: number, data: ActivityRequest): Promise<Result<ActivityResponse>> {
+  return request(`/admin/activities/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除活动
+ */
+export async function deleteActivity(id: number): Promise<Result<void>> {
+  return request(`/admin/activities/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 更新活动状态
+ */
+export async function updateActivityStatus(id: number, status: ActivityStatus): Promise<Result<void>> {
+  return request(`/admin/activities/${id}/status?status=${status}`, { method: 'PUT' });
+}
+
+/**
+ * 获取活动报名列表
+ */
+export async function getActivityRegistrations(
+  activityId: number,
+  params?: PageParams & { status?: RegistrationStatus }
+): Promise<Result<Page<RegistrationResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status) searchParams.append('status', params.status);
+  const query = searchParams.toString();
+  return request(`/admin/activities/${activityId}/registrations${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 更新报名状态
+ */
+export async function updateRegistrationStatus(regId: number, status: RegistrationStatus): Promise<Result<void>> {
+  return request(`/admin/activities/registrations/${regId}/status?status=${status}`, { method: 'PUT' });
+}
+
+/**
+ * 取消报名
+ */
+export async function cancelRegistration(regId: number): Promise<Result<void>> {
+  return request(`/admin/activities/registrations/${regId}`, { method: 'DELETE' });
+}

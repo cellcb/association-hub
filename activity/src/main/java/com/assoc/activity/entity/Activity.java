@@ -38,6 +38,18 @@ public class Activity extends AuditableEntity {
     @Column(name = "end_time")
     private LocalTime endTime;
 
+    @Column(name = "registration_start_date")
+    private LocalDate registrationStartDate;
+
+    @Column(name = "registration_start_time")
+    private LocalTime registrationStartTime;
+
+    @Column(name = "registration_end_date")
+    private LocalDate registrationEndDate;
+
+    @Column(name = "registration_end_time")
+    private LocalTime registrationEndTime;
+
     private String location;
 
     @Column(name = "participants_limit")

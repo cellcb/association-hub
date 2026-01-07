@@ -22,6 +22,10 @@ public class ActivityRequest {
     private LocalTime time;
     private LocalDate endDate;
     private LocalTime endTime;
+    private LocalDate registrationStartDate;
+    private LocalTime registrationStartTime;
+    private LocalDate registrationEndDate;
+    private LocalTime registrationEndTime;
     private String location;
     private Integer participantsLimit;
     private ActivityStatus status;

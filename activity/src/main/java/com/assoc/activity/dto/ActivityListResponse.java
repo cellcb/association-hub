@@ -16,6 +16,8 @@ public class ActivityListResponse {
     private String typeName;
     private LocalDate date;
     private LocalTime time;
+    private LocalDate registrationEndDate;
+    private LocalTime registrationEndTime;
     private String location;
     private ActivityStatus status;
     private String statusName;

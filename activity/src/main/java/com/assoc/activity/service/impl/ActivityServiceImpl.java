@@ -120,6 +120,10 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setTime(request.getTime());
         activity.setEndDate(request.getEndDate());
         activity.setEndTime(request.getEndTime());
+        activity.setRegistrationStartDate(request.getRegistrationStartDate());
+        activity.setRegistrationStartTime(request.getRegistrationStartTime());
+        activity.setRegistrationEndDate(request.getRegistrationEndDate());
+        activity.setRegistrationEndTime(request.getRegistrationEndTime());
         activity.setLocation(request.getLocation());
         activity.setParticipantsLimit(request.getParticipantsLimit());
         activity.setDescription(request.getDescription());
@@ -144,6 +148,8 @@ public class ActivityServiceImpl implements ActivityService {
         response.setTypeName(getTypeName(activity.getType()));
         response.setDate(activity.getDate());
         response.setTime(activity.getTime());
+        response.setRegistrationEndDate(activity.getRegistrationEndDate());
+        response.setRegistrationEndTime(activity.getRegistrationEndTime());
         response.setLocation(activity.getLocation());
         response.setStatus(activity.getStatus());
         response.setStatusName(getStatusName(activity.getStatus()));
@@ -166,6 +172,10 @@ public class ActivityServiceImpl implements ActivityService {
         response.setTime(activity.getTime());
         response.setEndDate(activity.getEndDate());
         response.setEndTime(activity.getEndTime());
+        response.setRegistrationStartDate(activity.getRegistrationStartDate());
+        response.setRegistrationStartTime(activity.getRegistrationStartTime());
+        response.setRegistrationEndDate(activity.getRegistrationEndDate());
+        response.setRegistrationEndTime(activity.getRegistrationEndTime());
         response.setLocation(activity.getLocation());
         response.setParticipantsLimit(activity.getParticipantsLimit());
         response.setStatus(activity.getStatus());
