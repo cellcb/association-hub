@@ -1,113 +1,83 @@
-import { Search, Filter, Plus, MoreVertical, CheckCircle, XCircle, Clock, Edit, Trash2, Eye, X, Building2, MapPin, Calendar, Award, FileText, User } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Filter, Plus, MoreVertical, CheckCircle, FileText, Edit, Trash2, Eye, X, Building2, MapPin, Calendar, Award, User, Loader2, Image as ImageIcon, Target, Lightbulb, BarChart3 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { Pagination } from './Pagination';
-
-interface Project {
-  id: number;
-  title: string;
-  coverImage?: string;
-  category: string;
-  location: string;
-  projectDate: string;
-  client: string;
-  designer: string;
-  area: string;
-  description: string;
-  features: string[];
-  technologies: string;
-  achievements: string;
-  publishDate: string;
-  status: '已发布' | '草稿' | '待审核';
-  views: number;
-}
+import {
+  getProjects,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+} from '@/lib/api';
+import type {
+  ProjectListResponse,
+  ProjectResponse,
+  ProjectRequest,
+  ProjectCategory,
+  ProjectStatus,
+  ProjectScale,
+  TechnicalFeature,
+  ProjectAchievement,
+} from '@/types/project';
+import { projectCategoryLabels, projectStatusLabels, parseProjectResponse } from '@/types/project';
 
 export function ProjectManagement() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('全部');
+  const [filterStatus, setFilterStatus] = useState<'all' | ProjectStatus>('all');
+  const [filterCategory, setFilterCategory] = useState<'all' | ProjectCategory>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectResponse | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 1,
-      title: '北京大兴国际机场航站楼项目',
-      coverImage: '',
-      category: '公共建筑',
-      location: '北京市大兴区',
-      projectDate: '2019-09-25',
-      client: '首都机场集团',
-      designer: '中国建筑设计研究院',
-      area: '80万平方米',
-      description: '北京大兴国际机场是国家重大标志性工程，采用世界首创的双层出发车道边设计，给排水系统采用先进的智能化管理技术。',
-      features: ['智能化给排水系统', '雨水收集利用', '中水回用系统', '绿色节能设计'],
-      technologies: '采用BIM技术进行全生命周期管理，给排水系统实现智能监控和自动调节。',
-      achievements: '获得国家优质工程金质奖、鲁班奖等多项荣誉。',
-      publishDate: '2024-01-15',
-      status: '已发布',
-      views: 15230,
-    },
-    {
-      id: 2,
-      title: '上海中心大厦绿色建筑案例',
-      coverImage: '',
-      category: '超高层建筑',
-      location: '上海市浦东新区',
-      projectDate: '2015-03-12',
-      client: '上海中心大厦建设发展有限公司',
-      designer: '同济大学建筑设计研究院',
-      area: '57.8万平方米',
-      description: '上海中心大厦高632米，是中国第一、世界第二高楼，采用多项绿色建筑技术。',
-      features: ['垂直绿化系统', '雨水收集系统', '中水处理系统', '太阳能热水系统'],
-      technologies: '创新性采用螺旋上升的双层幕墙系统，给排水系统实现分区供水和智能控制。',
-      achievements: '获得美国LEED金级认证、中国绿色建筑三星认证。',
-      publishDate: '2024-02-20',
-      status: '已发布',
-      views: 12580,
-    },
-    {
-      id: 3,
-      title: '广州海绵城市示范区',
-      coverImage: '',
-      category: '市政工程',
-      location: '广州市天河区',
-      projectDate: '2023-06-15',
-      client: '广州市水务局',
-      designer: '广州市市政工程设计研究院',
-      area: '5平方公里',
-      description: '海绵城市建设示范项目，通过自然积存、自然渗透、自然净化的方式，实现雨水资源化利用。',
-      features: ['透水铺装', '雨水花园', '生态滞留池', '智慧排水系统'],
-      technologies: '运用物联网、大数据等技术，建立智慧水务管理平台。',
-      achievements: '入选住建部海绵城市建设试点示范项目。',
-      publishDate: '',
-      status: '草稿',
-      views: 0,
-    },
-  ]);
+  const [projects, setProjects] = useState<ProjectListResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Partial<Project>>({
-    status: '草稿',
-    features: [],
-  });
+  const [formData, setFormData] = useState<ProjectFormData>(getInitialFormData());
 
+  // Fetch projects
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getProjects({
+        page: currentPage - 1,
+        size: itemsPerPage,
+        status: filterStatus === 'all' ? undefined : filterStatus,
+        category: filterCategory === 'all' ? undefined : filterCategory,
+      });
+      if (result.success && result.data) {
+        setProjects(result.data.content);
+        setTotalItems(result.data.page.totalElements);
+        setTotalPages(result.data.page.totalPages);
+      } else {
+        setError(result.message || '加载失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage, filterStatus, filterCategory]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  // Filter projects by search term (client-side)
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = 
+    const matchesSearch =
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === '全部' || project.status === filterStatus;
-    return matchesSearch && matchesStatus;
+      (project.location && project.location.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesSearch;
   });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -118,108 +88,123 @@ export function ProjectManagement() {
     setCurrentPage(1);
   };
 
-  const getStatusBadge = (status: Project['status']) => {
+  const getStatusBadge = (status: ProjectStatus) => {
     switch (status) {
-      case '已发布':
+      case 1:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
             <CheckCircle className="w-3 h-3" />
             已发布
           </span>
         );
-      case '草稿':
+      case 0:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
             <FileText className="w-3 h-3" />
             草稿
           </span>
         );
-      case '待审核':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full text-xs">
-            <Clock className="w-3 h-3" />
-            待审核
-          </span>
-        );
     }
   };
 
   const handleAdd = () => {
-    setFormData({
-      status: '草稿',
-      features: [],
-      views: 0,
-    });
+    setFormData(getInitialFormData());
     setShowAddModal(true);
   };
 
-  const handleView = (project: Project) => {
-    setSelectedProject(project);
-    setShowViewModal(true);
-  };
-
-  const handleEdit = (project: Project) => {
-    setSelectedProject(project);
-    setFormData(project);
-    setShowEditModal(true);
-  };
-
-  const handleDelete = (project: Project) => {
-    setSelectedProject(project);
-    setShowDeleteModal(true);
-  };
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleFeaturesChange = (value: string) => {
-    const featuresArray = value.split(',').map(f => f.trim()).filter(f => f);
-    setFormData(prev => ({
-      ...prev,
-      features: featuresArray
-    }));
-  };
-
-  const handleSubmitAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newProject: Project = {
-      ...formData as Project,
-      id: Math.max(...projects.map(p => p.id)) + 1,
-      publishDate: formData.status === '已发布' ? new Date().toISOString().split('T')[0] : '',
-      views: 0,
-    };
-    setProjects([...projects, newProject]);
-    setShowAddModal(false);
-  };
-
-  const handleSubmitEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedProject) {
-      setProjects(projects.map(p => 
-        p.id === selectedProject.id ? { 
-          ...formData as Project, 
-          id: selectedProject.id,
-          views: selectedProject.views,
-          publishDate: formData.status === '已发布' && !selectedProject.publishDate 
-            ? new Date().toISOString().split('T')[0] 
-            : selectedProject.publishDate
-        } : p
-      ));
-      setShowEditModal(false);
-      setSelectedProject(null);
+  const handleView = async (project: ProjectListResponse) => {
+    try {
+      const result = await getProjectById(project.id);
+      if (result.success && result.data) {
+        setSelectedProject(result.data);
+        setShowViewModal(true);
+      }
+    } catch (err) {
+      setError('加载详情失败');
     }
   };
 
-  const confirmDelete = () => {
-    if (selectedProject) {
-      setProjects(projects.filter(p => p.id !== selectedProject.id));
-      setShowDeleteModal(false);
-      setSelectedProject(null);
+  const handleEdit = async (project: ProjectListResponse) => {
+    try {
+      const result = await getProjectById(project.id);
+      if (result.success && result.data) {
+        setSelectedProject(result.data);
+        setFormData(projectToFormData(result.data));
+        setShowEditModal(true);
+      }
+    } catch (err) {
+      setError('加载详情失败');
+    }
+  };
+
+  const handleDelete = async (project: ProjectListResponse) => {
+    try {
+      const result = await getProjectById(project.id);
+      if (result.success && result.data) {
+        setSelectedProject(result.data);
+        setShowDeleteModal(true);
+      }
+    } catch (err) {
+      setError('加载详情失败');
+    }
+  };
+
+  const handleSubmitAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const request = formDataToRequest(formData);
+      const result = await createProject(request);
+      if (result.success) {
+        setShowAddModal(false);
+        fetchProjects();
+      } else {
+        setError(result.message || '创建失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+    setSubmitting(true);
+    try {
+      const request = formDataToRequest(formData);
+      const result = await updateProject(selectedProject.id, request);
+      if (result.success) {
+        setShowEditModal(false);
+        setSelectedProject(null);
+        fetchProjects();
+      } else {
+        setError(result.message || '更新失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedProject) return;
+    setSubmitting(true);
+    try {
+      const result = await deleteProject(selectedProject.id);
+      if (result.success) {
+        setShowDeleteModal(false);
+        setSelectedProject(null);
+        fetchProjects();
+      } else {
+        setError(result.message || '删除失败');
+      }
+    } catch (err) {
+      setError('网络错误');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -230,6 +215,16 @@ export function ProjectManagement() {
         <h2 className="text-2xl text-gray-900 mb-2">项目管理</h2>
         <p className="text-gray-600">管理优秀案例项目信息</p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 text-red-800 hover:text-red-900">
+            <X className="w-4 h-4 inline" />
+          </button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6">
@@ -245,8 +240,8 @@ export function ProjectManagement() {
             />
           </div>
 
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap" 
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
             onClick={handleAdd}
           >
             <Plus className="w-5 h-5" />
@@ -259,142 +254,161 @@ export function ProjectManagement() {
             <Filter className="w-4 h-4 text-gray-500" />
             <span className="text-sm text-gray-600">筛选:</span>
           </div>
-          
+
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => {
+              setFilterStatus(e.target.value === 'all' ? 'all' : Number(e.target.value) as ProjectStatus);
+              setCurrentPage(1);
+            }}
             className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
           >
-            <option>全部</option>
-            <option>已发布</option>
-            <option>草稿</option>
-            <option>待审核</option>
+            <option value="all">全部状态</option>
+            <option value="1">已发布</option>
+            <option value="0">草稿</option>
+          </select>
+
+          <select
+            value={filterCategory}
+            onChange={(e) => {
+              setFilterCategory(e.target.value === 'all' ? 'all' : e.target.value as ProjectCategory);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="all">全部类别</option>
+            {Object.entries(projectCategoryLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
           </select>
         </div>
 
         <div className="mt-4 text-sm text-gray-500">
-          共 {filteredProjects.length} 个项目
+          共 {totalItems} 个项目
         </div>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  项目信息
-                </th>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  项目特点
-                </th>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  发布时间
-                </th>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  浏览量
-                </th>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  状态
-                </th>
-                <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedProjects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="text-sm text-gray-900">{project.title}</div>
-                      <div className="text-xs text-gray-500">{project.category} · {project.location}</div>
-                      <div className="text-xs text-gray-500">面积：{project.area}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {project.features.slice(0, 2).map((feature, index) => (
-                        <span key={index} className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs">
-                          {feature}
-                        </span>
-                      ))}
-                      {project.features.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                          +{project.features.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600">
-                      {project.publishDate || '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600">{project.views}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {getStatusBadge(project.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="relative">
-                      <button 
-                        className="p-1 text-gray-400 hover:text-gray-600" 
-                        onClick={() => setOpenDropdown(openDropdown === project.id ? null : project.id)}
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      
-                      {openDropdown === project.id && (
-                        <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                          <button
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            onClick={() => {
-                              handleView(project);
-                              setOpenDropdown(null);
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                            查看
-                          </button>
-                          <button
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            onClick={() => {
-                              handleEdit(project);
-                              setOpenDropdown(null);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                            编辑
-                          </button>
-                          <button
-                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                            onClick={() => {
-                              handleDelete(project);
-                              setOpenDropdown(null);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            删除
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    项目信息
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    项目类别
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    建设单位
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    浏览量
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    状态
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                    操作
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredProjects.map((project) => (
+                  <tr key={project.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-sm text-gray-900">{project.title}</div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {project.location || '-'}
+                        </div>
+                        {project.completionDate && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {project.completionDate}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs">
+                        {project.categoryName}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-600">{project.owner || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-600">{project.views}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {getStatusBadge(project.status)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="relative">
+                        <button
+                          className="p-1 text-gray-400 hover:text-gray-600"
+                          onClick={() => setOpenDropdown(openDropdown === project.id ? null : project.id)}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {openDropdown === project.id && (
+                          <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                              onClick={() => {
+                                handleView(project);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                              查看
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                              onClick={() => {
+                                handleEdit(project);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                              编辑
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                              onClick={() => {
+                                handleDelete(project);
+                                setOpenDropdown(null);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              删除
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
-          totalItems={filteredProjects.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
           onItemsPerPageChange={handleItemsPerPageChange}
         />
@@ -405,10 +419,10 @@ export function ProjectManagement() {
         <ProjectModal
           title="添加项目"
           formData={formData}
+          setFormData={setFormData}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleSubmitAdd}
-          onFormChange={handleFormChange}
-          onFeaturesChange={handleFeaturesChange}
+          submitting={submitting}
         />
       )}
 
@@ -417,10 +431,10 @@ export function ProjectManagement() {
         <ProjectModal
           title="编辑项目"
           formData={formData}
+          setFormData={setFormData}
           onClose={() => setShowEditModal(false)}
           onSubmit={handleSubmitEdit}
-          onFormChange={handleFormChange}
-          onFeaturesChange={handleFeaturesChange}
+          submitting={submitting}
         />
       )}
 
@@ -431,7 +445,8 @@ export function ProjectManagement() {
           onClose={() => setShowViewModal(false)}
           onEdit={() => {
             setShowViewModal(false);
-            handleEdit(selectedProject);
+            setFormData(projectToFormData(selectedProject));
+            setShowEditModal(true);
           }}
           getStatusBadge={getStatusBadge}
         />
@@ -442,18 +457,23 @@ export function ProjectManagement() {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96">
             <h3 className="text-xl text-gray-900 mb-4">删除项目</h3>
-            <p className="text-sm text-gray-600 mb-4">确定要删除项目 <strong>{selectedProject.title}</strong> 吗？</p>
+            <p className="text-sm text-gray-600 mb-4">
+              确定要删除项目 <strong>{selectedProject.title}</strong> 吗？此操作不可撤销。
+            </p>
             <div className="flex justify-end gap-2">
-              <button 
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors" 
+              <button
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                 onClick={() => setShowDeleteModal(false)}
+                disabled={submitting}
               >
                 取消
               </button>
-              <button 
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" 
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
                 onClick={confirmDelete}
+                disabled={submitting}
               >
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 删除
               </button>
             </div>
@@ -464,8 +484,234 @@ export function ProjectManagement() {
   );
 }
 
+// Form Data Type
+interface ProjectFormData {
+  title: string;
+  category: ProjectCategory;
+  location: string;
+  completionDate: string;
+  owner: string;
+  designer: string;
+  contractor: string;
+  description: string;
+  background: string;
+  designConcept: string;
+  status: ProjectStatus;
+  coverImage: string;
+  highlights: string[];
+  projectAwards: string[];
+  scale: ProjectScale;
+  technicalFeatures: TechnicalFeature[];
+  achievements: ProjectAchievement[];
+  images: string[];
+}
+
+function getInitialFormData(): ProjectFormData {
+  return {
+    title: '',
+    category: 'SMART_BUILDING',
+    location: '',
+    completionDate: '',
+    owner: '',
+    designer: '',
+    contractor: '',
+    description: '',
+    background: '',
+    designConcept: '',
+    status: 0,
+    coverImage: '',
+    highlights: [],
+    projectAwards: [],
+    scale: { area: '', height: '', investment: '' },
+    technicalFeatures: [],
+    achievements: [],
+    images: [],
+  };
+}
+
+function projectToFormData(project: ProjectResponse): ProjectFormData {
+  const parsed = parseProjectResponse(project);
+  return {
+    title: project.title,
+    category: project.category,
+    location: project.location || '',
+    completionDate: project.completionDate || '',
+    owner: project.owner || '',
+    designer: project.designer || '',
+    contractor: project.contractor || '',
+    description: project.description || '',
+    background: project.background || '',
+    designConcept: project.designConcept || '',
+    status: project.status,
+    coverImage: project.coverImage || '',
+    highlights: parsed.highlights,
+    projectAwards: parsed.projectAwards,
+    scale: parsed.scale || { area: '', height: '', investment: '' },
+    technicalFeatures: parsed.technicalFeatures,
+    achievements: parsed.achievements,
+    images: parsed.images,
+  };
+}
+
+function formDataToRequest(formData: ProjectFormData): ProjectRequest {
+  // 过滤空行的辅助函数（用于文本输入的数组）
+  const filterEmpty = (arr: string[]) => arr.map(s => s.trim()).filter(s => s);
+
+  const highlights = filterEmpty(formData.highlights);
+  const projectAwards = filterEmpty(formData.projectAwards);
+  // images 是 Base64 数组，直接过滤空值
+  const images = formData.images.filter(s => s);
+
+  return {
+    title: formData.title,
+    category: formData.category,
+    location: formData.location || undefined,
+    completionDate: formData.completionDate || undefined,
+    owner: formData.owner || undefined,
+    designer: formData.designer || undefined,
+    contractor: formData.contractor || undefined,
+    description: formData.description || undefined,
+    background: formData.background || undefined,
+    designConcept: formData.designConcept || undefined,
+    status: formData.status,
+    coverImage: formData.coverImage || undefined,
+    highlights: highlights.length > 0 ? JSON.stringify(highlights) : undefined,
+    projectAwards: projectAwards.length > 0 ? JSON.stringify(projectAwards) : undefined,
+    scale: (formData.scale.area || formData.scale.height || formData.scale.investment)
+      ? JSON.stringify(formData.scale)
+      : undefined,
+    technicalFeatures: formData.technicalFeatures.length > 0
+      ? JSON.stringify(formData.technicalFeatures)
+      : undefined,
+    achievements: formData.achievements.length > 0
+      ? JSON.stringify(formData.achievements)
+      : undefined,
+    images: images.length > 0 ? JSON.stringify(images) : undefined,
+  };
+}
+
 // Project Modal Component
-function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeaturesChange }: any) {
+interface ProjectModalProps {
+  title: string;
+  formData: ProjectFormData;
+  setFormData: React.Dispatch<React.SetStateAction<ProjectFormData>>;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  submitting: boolean;
+}
+
+function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitting }: ProjectModalProps) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'status' ? Number(value) : value
+    }));
+  };
+
+  const handleScaleChange = (field: keyof ProjectScale, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      scale: { ...prev.scale, [field]: value }
+    }));
+  };
+
+  const handleArrayChange = (field: 'highlights' | 'projectAwards', value: string) => {
+    // 保留原始输入（包括空行），只在提交时才过滤
+    const arr = value.split('\n');
+    setFormData(prev => ({ ...prev, [field]: arr }));
+  };
+
+  // 封面图片上传处理
+  const handleCoverImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('图片大小不能超过 2MB');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, coverImage: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 多图片上传处理
+  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(`图片 ${file.name} 超过 2MB，已跳过`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, reader.result as string]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  // 删除项目图片
+  const handleRemoveImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleTechnicalFeaturesChange = (index: number, field: keyof TechnicalFeature, value: string) => {
+    setFormData(prev => {
+      const features = [...prev.technicalFeatures];
+      features[index] = { ...features[index], [field]: value };
+      return { ...prev, technicalFeatures: features };
+    });
+  };
+
+  const addTechnicalFeature = () => {
+    setFormData(prev => ({
+      ...prev,
+      technicalFeatures: [...prev.technicalFeatures, { title: '', description: '' }]
+    }));
+  };
+
+  const removeTechnicalFeature = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      technicalFeatures: prev.technicalFeatures.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAchievementsChange = (index: number, field: keyof ProjectAchievement, value: string) => {
+    setFormData(prev => {
+      const achievements = [...prev.achievements];
+      achievements[index] = { ...achievements[index], [field]: value };
+      return { ...prev, achievements };
+    });
+  };
+
+  const addAchievement = () => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: [...prev.achievements, { title: '', value: '', description: '' }]
+    }));
+  };
+
+  const removeAchievement = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter((_, i) => i !== index)
+    }));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8">
@@ -504,8 +750,8 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
                     type="text"
                     name="title"
                     required
-                    value={formData.title || ''}
-                    onChange={onFormChange}
+                    value={formData.title}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="请输入项目名称"
                   />
@@ -513,27 +759,28 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
 
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">项目类别 *</label>
-                  <input
-                    type="text"
+                  <select
                     name="category"
                     required
-                    value={formData.category || ''}
-                    onChange={onFormChange}
+                    value={formData.category}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="如：公共建筑、市政工程"
-                  />
+                  >
+                    {Object.entries(projectCategoryLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">项目地点 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">项目地点</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
                       name="location"
-                      required
-                      value={formData.location || ''}
-                      onChange={onFormChange}
+                      value={formData.location}
+                      onChange={handleChange}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="请输入项目地点"
                     />
@@ -541,56 +788,125 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">完工日期 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">竣工日期</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="date"
-                      name="projectDate"
-                      required
-                      value={formData.projectDate || ''}
-                      onChange={onFormChange}
+                      name="completionDate"
+                      value={formData.completionDate}
+                      onChange={handleChange}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">建筑面积 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">建设单位</label>
                   <input
                     type="text"
-                    name="area"
-                    required
-                    value={formData.area || ''}
-                    onChange={onFormChange}
+                    name="owner"
+                    value={formData.owner}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="请输入建设单位"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">设计单位</label>
+                  <input
+                    type="text"
+                    name="designer"
+                    value={formData.designer}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="请输入设计单位"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">施工单位</label>
+                  <input
+                    type="text"
+                    name="contractor"
+                    value={formData.contractor}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="请输入施工单位"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-gray-700 mb-2">封面图片</label>
+                  <div className="flex items-start gap-4">
+                    {formData.coverImage && (
+                      <div className="relative group">
+                        <img
+                          src={formData.coverImage}
+                          alt="封面预览"
+                          className="w-32 h-24 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    <label className="flex-1 flex flex-col items-center justify-center px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors">
+                      <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-500">点击上传封面图片</span>
+                      <span className="text-xs text-gray-400 mt-1">支持 JPG、PNG，最大 2MB</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleCoverImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Scale Info */}
+            <div>
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-green-600" />
+                项目规模
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">建筑面积</label>
+                  <input
+                    type="text"
+                    value={formData.scale.area || ''}
+                    onChange={(e) => handleScaleChange('area', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="如：80万平方米"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">业主单位 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">建筑高度</label>
                   <input
                     type="text"
-                    name="client"
-                    required
-                    value={formData.client || ''}
-                    onChange={onFormChange}
+                    value={formData.scale.height || ''}
+                    onChange={(e) => handleScaleChange('height', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="请输入业主单位"
+                    placeholder="如：632米"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">设计单位 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">投资规模</label>
                   <input
                     type="text"
-                    name="designer"
-                    required
-                    value={formData.designer || ''}
-                    onChange={onFormChange}
+                    value={formData.scale.investment || ''}
+                    onChange={(e) => handleScaleChange('investment', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="请输入设计单位"
+                    placeholder="如：800亿元"
                   />
                 </div>
               </div>
@@ -604,55 +920,201 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">项目简介 *</label>
+                  <label className="block text-sm text-gray-700 mb-2">项目简介</label>
                   <textarea
                     name="description"
-                    required
-                    rows={4}
-                    value={formData.description || ''}
-                    onChange={onFormChange}
+                    rows={3}
+                    value={formData.description}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="请输入项目简介"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">项目特点 *</label>
-                  <input
-                    type="text"
-                    name="features"
-                    required
-                    value={formData.features?.join(', ') || ''}
-                    onChange={(e) => onFeaturesChange(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="请输入项目特点，多个用逗号分隔"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">例如：智能化给排水系统, 雨水收集利用, 绿色节能设计</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">技术应用</label>
+                  <label className="block text-sm text-gray-700 mb-2">项目背景</label>
                   <textarea
-                    name="technologies"
+                    name="background"
                     rows={3}
-                    value={formData.technologies || ''}
-                    onChange={onFormChange}
+                    value={formData.background}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="请输入技术应用说明"
+                    placeholder="请输入项目背景"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">项目成就</label>
+                  <label className="block text-sm text-gray-700 mb-2">设计理念</label>
                   <textarea
-                    name="achievements"
+                    name="designConcept"
                     rows={3}
-                    value={formData.achievements || ''}
-                    onChange={onFormChange}
+                    value={formData.designConcept}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="请输入项目获得的荣誉或成就"
+                    placeholder="请输入设计理念"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">技术亮点 (每行一个)</label>
+                  <textarea
+                    rows={4}
+                    value={formData.highlights.join('\n')}
+                    onChange={(e) => handleArrayChange('highlights', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="智能化给排水系统&#10;雨水收集利用&#10;中水回用系统"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">获奖情况 (每行一个)</label>
+                  <textarea
+                    rows={3}
+                    value={formData.projectAwards.join('\n')}
+                    onChange={(e) => handleArrayChange('projectAwards', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="鲁班奖&#10;国家优质工程金质奖"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">项目图片</label>
+                  {/* 已上传图片预览 */}
+                  {formData.images.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mb-3">
+                      {formData.images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={img}
+                            alt={`项目图片 ${index + 1}`}
+                            className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 上传按钮 */}
+                  <label className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors">
+                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-500">点击上传项目图片（可多选）</span>
+                    <span className="text-xs text-gray-400">单张最大 2MB</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple
+                      onChange={handleImagesUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Technical Features */}
+            <div>
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-green-600" />
+                技术特点
+              </h3>
+              <div className="space-y-4">
+                {formData.technicalFeatures.map((feature, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-gray-600">技术特点 #{index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTechnicalFeature(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={feature.title}
+                        onChange={(e) => handleTechnicalFeaturesChange(index, 'title', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="特点标题"
+                      />
+                      <textarea
+                        rows={2}
+                        value={feature.description}
+                        onChange={(e) => handleTechnicalFeaturesChange(index, 'description', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="特点描述"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addTechnicalFeature}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-green-500 hover:text-green-500 transition-colors"
+                >
+                  + 添加技术特点
+                </button>
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div>
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-green-600" />
+                项目成果
+              </h3>
+              <div className="space-y-4">
+                {formData.achievements.map((achievement, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-gray-600">成果 #{index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAchievement(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        value={achievement.title}
+                        onChange={(e) => handleAchievementsChange(index, 'title', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="成果标题"
+                      />
+                      <input
+                        type="text"
+                        value={achievement.value}
+                        onChange={(e) => handleAchievementsChange(index, 'value', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="成果数值"
+                      />
+                      <input
+                        type="text"
+                        value={achievement.description}
+                        onChange={(e) => handleAchievementsChange(index, 'description', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="成果描述"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addAchievement}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-green-500 hover:text-green-500 transition-colors"
+                >
+                  + 添加项目成果
+                </button>
               </div>
             </div>
 
@@ -668,12 +1130,11 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
                   name="status"
                   required
                   value={formData.status}
-                  onChange={onFormChange}
+                  onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="草稿">草稿</option>
-                  <option value="待审核">待审核</option>
-                  <option value="已发布">已发布</option>
+                  <option value={0}>草稿</option>
+                  <option value={1}>已发布</option>
                 </select>
               </div>
             </div>
@@ -684,13 +1145,16 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
                 type="button"
                 onClick={onClose}
                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={submitting}
               >
                 取消
               </button>
               <button
                 type="submit"
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                disabled={submitting}
               >
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 保存
               </button>
             </div>
@@ -702,7 +1166,16 @@ function ProjectModal({ title, formData, onClose, onSubmit, onFormChange, onFeat
 }
 
 // View Project Modal Component
-function ViewProjectModal({ project, onClose, onEdit, getStatusBadge }: any) {
+interface ViewProjectModalProps {
+  project: ProjectResponse;
+  onClose: () => void;
+  onEdit: () => void;
+  getStatusBadge: (status: ProjectStatus) => JSX.Element;
+}
+
+function ViewProjectModal({ project, onClose, onEdit, getStatusBadge }: ViewProjectModalProps) {
+  const parsed = parseProjectResponse(project);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8">
@@ -727,6 +1200,23 @@ function ViewProjectModal({ project, onClose, onEdit, getStatusBadge }: any) {
 
         {/* Content */}
         <div className="p-6 md:p-8 max-h-[70vh] overflow-y-auto">
+          {/* Cover Image */}
+          {project.coverImage && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-green-600" />
+                封面图片
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <img
+                  src={project.coverImage}
+                  alt="封面图片"
+                  className="max-w-full max-h-64 rounded-lg mx-auto"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Basic Info */}
           <div className="mb-6">
             <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
@@ -740,79 +1230,193 @@ function ViewProjectModal({ project, onClose, onEdit, getStatusBadge }: any) {
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">项目类别</div>
-                <div className="text-sm text-gray-900">{project.category}</div>
+                <div className="text-sm text-gray-900">{project.categoryName}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   项目地点
                 </div>
-                <div className="text-sm text-gray-900">{project.location}</div>
+                <div className="text-sm text-gray-900">{project.location || '-'}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  完工日期
+                  竣工日期
                 </div>
-                <div className="text-sm text-gray-900">{project.projectDate}</div>
+                <div className="text-sm text-gray-900">{project.completionDate || '-'}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">建筑面积</div>
-                <div className="text-sm text-gray-900">{project.area}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">业主单位</div>
-                <div className="text-sm text-gray-900">{project.client}</div>
+                <div className="text-xs text-gray-500 mb-1">建设单位</div>
+                <div className="text-sm text-gray-900">{project.owner || '-'}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">设计单位</div>
-                <div className="text-sm text-gray-900">{project.designer}</div>
+                <div className="text-sm text-gray-900">{project.designer || '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 mb-1">施工单位</div>
+                <div className="text-sm text-gray-900">{project.contractor || '-'}</div>
               </div>
             </div>
           </div>
 
-          {/* Features */}
-          <div className="mb-6">
-            <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5 text-green-600" />
-              项目特点
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="flex flex-wrap gap-2">
-                {project.features.map((feature: string, index: number) => (
-                  <span key={index} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm">
-                    {feature}
-                  </span>
+          {/* Scale Info */}
+          {parsed.scale && (parsed.scale.area || parsed.scale.height || parsed.scale.investment) && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-green-600" />
+                项目规模
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {parsed.scale.area && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-600 mb-1">建筑面积</div>
+                    <div className="text-lg text-blue-900">{parsed.scale.area}</div>
+                  </div>
+                )}
+                {parsed.scale.height && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-600 mb-1">建筑高度</div>
+                    <div className="text-lg text-blue-900">{parsed.scale.height}</div>
+                  </div>
+                )}
+                {parsed.scale.investment && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-600 mb-1">投资规模</div>
+                    <div className="text-lg text-blue-900">{parsed.scale.investment}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Project Description */}
+          {project.description && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-600" />
+                项目简介
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <p className="text-sm text-gray-700 leading-relaxed">{project.description}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Background */}
+          {project.background && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4">项目背景</h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <p className="text-sm text-gray-700 leading-relaxed">{project.background}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Design Concept */}
+          {project.designConcept && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-green-600" />
+                设计理念
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <p className="text-sm text-gray-700 leading-relaxed">{project.designConcept}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Highlights */}
+          {parsed.highlights.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <Award className="w-5 h-5 text-green-600" />
+                技术亮点
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex flex-wrap gap-2">
+                  {parsed.highlights.map((highlight, index) => (
+                    <span key={index} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm">
+                      {highlight}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Technical Features */}
+          {parsed.technicalFeatures.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-green-600" />
+                技术特点
+              </h3>
+              <div className="space-y-3">
+                {parsed.technicalFeatures.map((feature, index) => (
+                  <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="text-sm text-gray-900 mb-2">{feature.title}</h4>
+                    <p className="text-sm text-gray-600">{feature.description}</p>
+                  </div>
                 ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Details */}
-          <div className="mb-6">
-            <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-green-600" />
-              项目详情
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">项目简介</div>
-                <div className="text-sm text-gray-700 leading-relaxed">{project.description}</div>
+          {/* Achievements */}
+          {parsed.achievements.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4">项目成果</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {parsed.achievements.map((achievement, index) => (
+                  <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                    <div className="text-2xl text-blue-600 mb-1">{achievement.value}</div>
+                    <div className="text-sm text-gray-900 mb-1">{achievement.title}</div>
+                    <div className="text-xs text-gray-600">{achievement.description}</div>
+                  </div>
+                ))}
               </div>
-              {project.technologies && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">技术应用</div>
-                  <div className="text-sm text-gray-700 leading-relaxed">{project.technologies}</div>
-                </div>
-              )}
-              {project.achievements && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">项目成就</div>
-                  <div className="text-sm text-gray-700 leading-relaxed">{project.achievements}</div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
+
+          {/* Awards */}
+          {parsed.projectAwards.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4">获奖情况</h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="space-y-2">
+                  {parsed.projectAwards.map((award, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      {award}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Project Images */}
+          {parsed.images.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-green-600" />
+                项目图片 ({parsed.images.length}张)
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {parsed.images.map((img, index) => (
+                  <div key={index} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                    <img
+                      src={img}
+                      alt={`项目图片 ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Status */}
           <div className="mb-6">
@@ -823,12 +1427,14 @@ function ViewProjectModal({ project, onClose, onEdit, getStatusBadge }: any) {
                 <div className="mt-1">{getStatusBadge(project.status)}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">发布时间</div>
-                <div className="text-sm text-gray-900">{project.publishDate || '-'}</div>
-              </div>
-              <div>
                 <div className="text-xs text-gray-500 mb-1">浏览量</div>
                 <div className="text-sm text-gray-900">{project.views}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 mb-1">创建时间</div>
+                <div className="text-sm text-gray-900">
+                  {project.createdTime ? new Date(project.createdTime).toLocaleString() : '-'}
+                </div>
               </div>
             </div>
           </div>

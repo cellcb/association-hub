@@ -124,9 +124,9 @@ public class Project extends AuditableEntity {
     private String images;
 
     /**
-     * Cover image URL
+     * Cover image (Base64 encoded)
      */
-    @Column(name = "cover_image", length = 500)
+    @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
 
     /**

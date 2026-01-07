@@ -502,3 +502,62 @@ export async function deleteExpert(id: number): Promise<Result<void>> {
 export async function getExpertiseFields(): Promise<Result<ExpertiseFieldResponse[]>> {
   return request('/expertise-fields');
 }
+
+// ========== Admin Project API ==========
+
+import type {
+  ProjectListResponse,
+  ProjectResponse,
+  ProjectRequest,
+  ProjectCategory,
+} from '@/types/project';
+
+/**
+ * 获取项目列表
+ */
+export async function getProjects(
+  params?: PageParams & { status?: number; category?: ProjectCategory }
+): Promise<Result<Page<ProjectListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status !== undefined) searchParams.append('status', params.status.toString());
+  if (params?.category) searchParams.append('category', params.category);
+  const query = searchParams.toString();
+  return request(`/admin/projects${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取项目详情
+ */
+export async function getProjectById(id: number): Promise<Result<ProjectResponse>> {
+  return request(`/admin/projects/${id}`);
+}
+
+/**
+ * 创建项目
+ */
+export async function createProject(data: ProjectRequest): Promise<Result<ProjectResponse>> {
+  return request('/admin/projects', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新项目
+ */
+export async function updateProject(id: number, data: ProjectRequest): Promise<Result<ProjectResponse>> {
+  return request(`/admin/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除项目
+ */
+export async function deleteProject(id: number): Promise<Result<void>> {
+  return request(`/admin/projects/${id}`, { method: 'DELETE' });
+}
