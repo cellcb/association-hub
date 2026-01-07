@@ -3,11 +3,12 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Pagination } from './Pagination';
-import type { NewsListResponse, NewsRequest, NewsStatus, NewsCategoryResponse, TagResponse } from '@/types/news';
+import type { NewsListResponse, NewsResponse, NewsRequest, NewsStatus, NewsCategoryResponse, TagResponse } from '@/types/news';
 import { newsStatusLabels } from '@/types/news';
 import type { Page } from '@/types/member';
 import {
   getNewsList,
+  getNewsById,
   createNews,
   updateNews,
   deleteNews as deleteNewsApi,
@@ -47,6 +48,7 @@ export function NewsManagement() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedNews, setSelectedNews] = useState<NewsListResponse | null>(null);
+  const [newsDetail, setNewsDetail] = useState<NewsResponse | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -173,25 +175,37 @@ export function NewsManagement() {
     setShowAddModal(true);
   };
 
-  const handleView = (news: NewsListResponse) => {
+  const handleView = async (news: NewsListResponse) => {
     setSelectedNews(news);
+    setNewsDetail(null);
     setShowViewModal(true);
+
+    // 从详情 API 获取完整内容
+    const result = await getNewsById(news.id);
+    if (result.success && result.data) {
+      setNewsDetail(result.data);
+    }
   };
 
-  const handleEdit = (news: NewsListResponse) => {
+  const handleEdit = async (news: NewsListResponse) => {
     setSelectedNews(news);
-    setFormData({
-      title: news.title,
-      excerpt: news.excerpt,
-      content: '', // 需要从详情API获取
-      categoryId: news.categoryId,
-      author: news.author,
-      coverImage: news.coverImage || '',
-      featured: news.featured,
-      status: news.status,
-      tagIds: news.tags?.map(t => t.id) || [],
-    });
     setShowEditModal(true);
+
+    // 从详情 API 获取完整内容（包括 content 中的 Base64 图片）
+    const result = await getNewsById(news.id);
+    if (result.success && result.data) {
+      setFormData({
+        title: result.data.title,
+        excerpt: result.data.excerpt,
+        content: result.data.content,
+        categoryId: result.data.category.id,
+        author: result.data.author,
+        coverImage: result.data.coverImage || '',
+        featured: result.data.featured,
+        status: result.data.status,
+        tagIds: result.data.tags?.map(t => t.id) || [],
+      });
+    }
   };
 
   const handleDelete = (news: NewsListResponse) => {
@@ -575,6 +589,7 @@ export function NewsManagement() {
       {showViewModal && selectedNews && (
         <ViewNewsModal
           news={selectedNews}
+          detail={newsDetail}
           onClose={() => setShowViewModal(false)}
           onEdit={() => {
             setShowViewModal(false);
@@ -657,6 +672,8 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
   };
   // Custom image handler for Quill - defined with useCallback to maintain stable reference
   const imageHandler = useCallback(() => {
+    const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
@@ -665,6 +682,12 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
     input.onchange = async () => {
       const file = input.files?.[0];
       if (file) {
+        // Check file size
+        if (file.size > MAX_IMAGE_SIZE) {
+          alert(`图片大小不能超过 2MB，当前图片大小为 ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          return;
+        }
+
         // Convert image to base64
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -927,8 +950,9 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
 }
 
 // View News Modal Component
-function ViewNewsModal({ news, onClose, onEdit, getStatusBadge }: {
+function ViewNewsModal({ news, detail, onClose, onEdit, getStatusBadge }: {
   news: NewsListResponse;
+  detail: NewsResponse | null;
   onClose: () => void;
   onEdit: () => void;
   getStatusBadge: (status: NewsStatus) => React.ReactNode;
@@ -1023,6 +1047,20 @@ function ViewNewsModal({ news, onClose, onEdit, getStatusBadge }: {
               <div>
                 <div className="text-xs text-gray-500 mb-2">摘要</div>
                 <div className="text-sm text-gray-700 leading-relaxed">{news.excerpt || '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 mb-2">正文</div>
+                {detail ? (
+                  <div
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: detail.content || '-' }}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    加载中...
+                  </div>
+                )}
               </div>
             </div>
           </div>
