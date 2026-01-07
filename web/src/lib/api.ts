@@ -660,3 +660,70 @@ export async function updateRegistrationStatus(regId: number, status: Registrati
 export async function cancelRegistration(regId: number): Promise<Result<void>> {
   return request(`/admin/activities/registrations/${regId}`, { method: 'DELETE' });
 }
+
+// ========== Admin Product API ==========
+
+import type {
+  ProductListResponse,
+  ProductResponse,
+  ProductRequest,
+  ProductCategoryResponse,
+} from '@/types/product';
+
+/**
+ * 获取产品列表
+ */
+export async function getProducts(
+  params?: PageParams & { status?: number; categoryId?: number; keyword?: string }
+): Promise<Result<Page<ProductListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status !== undefined) searchParams.append('status', params.status.toString());
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  const query = searchParams.toString();
+  return request(`/admin/products${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取产品详情
+ */
+export async function getProductById(id: number): Promise<Result<ProductResponse>> {
+  return request(`/admin/products/${id}`);
+}
+
+/**
+ * 创建产品
+ */
+export async function createProduct(data: ProductRequest): Promise<Result<ProductResponse>> {
+  return request('/admin/products', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新产品
+ */
+export async function updateProduct(id: number, data: ProductRequest): Promise<Result<ProductResponse>> {
+  return request(`/admin/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除产品
+ */
+export async function deleteProduct(id: number): Promise<Result<void>> {
+  return request(`/admin/products/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 获取产品分类列表
+ */
+export async function getProductCategories(): Promise<Result<ProductCategoryResponse[]>> {
+  return request('/products/categories');
+}

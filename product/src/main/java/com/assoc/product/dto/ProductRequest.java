@@ -10,11 +10,17 @@ public class ProductRequest {
 
     private Long categoryId;
     private String manufacturer;
+    private String model;
+    private String price;
+    private String summary;
     private String description;
     private String application;
     private String contactPhone;
     private String contactEmail;
+    private String contact;
+    private String website;
     private Integer status;
+    private Boolean featured;
 
     // JSON string fields
     private String features;

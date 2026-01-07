@@ -126,14 +126,22 @@ public class ProductServiceImpl implements ProductService {
     private void mapRequestToEntity(ProductRequest request, Product product) {
         product.setName(request.getName());
         product.setManufacturer(request.getManufacturer());
+        product.setModel(request.getModel());
+        product.setPrice(request.getPrice());
+        product.setSummary(request.getSummary());
         product.setDescription(request.getDescription());
         product.setFeatures(request.getFeatures());
         product.setApplication(request.getApplication());
         product.setCertifications(request.getCertifications());
         product.setContactPhone(request.getContactPhone());
         product.setContactEmail(request.getContactEmail());
+        product.setContact(request.getContact());
+        product.setWebsite(request.getWebsite());
         product.setImages(request.getImages());
         product.setSpecifications(request.getSpecifications());
+        if (request.getFeatured() != null) {
+            product.setFeatured(request.getFeatured());
+        }
     }
 
     private ProductListResponse toListResponse(Product product) {
@@ -145,9 +153,13 @@ public class ProductServiceImpl implements ProductService {
             response.setCategoryId(product.getCategory().getId());
         }
         response.setManufacturer(product.getManufacturer());
+        response.setModel(product.getModel());
+        response.setPrice(product.getPrice());
+        response.setSummary(product.getSummary());
         response.setDescription(product.getDescription());
         response.setStatus(product.getStatus());
         response.setViews(product.getViews());
+        response.setFeatured(product.getFeatured());
         response.setImages(product.getImages());
         return response;
     }
@@ -160,16 +172,22 @@ public class ProductServiceImpl implements ProductService {
             response.setCategory(toCategoryResponse(product.getCategory()));
         }
         response.setManufacturer(product.getManufacturer());
+        response.setModel(product.getModel());
+        response.setPrice(product.getPrice());
+        response.setSummary(product.getSummary());
         response.setDescription(product.getDescription());
         response.setFeatures(product.getFeatures());
         response.setApplication(product.getApplication());
         response.setCertifications(product.getCertifications());
         response.setContactPhone(product.getContactPhone());
         response.setContactEmail(product.getContactEmail());
+        response.setContact(product.getContact());
+        response.setWebsite(product.getWebsite());
         response.setImages(product.getImages());
         response.setSpecifications(product.getSpecifications());
         response.setStatus(product.getStatus());
         response.setViews(product.getViews());
+        response.setFeatured(product.getFeatured());
         response.setCreatedTime(product.getCreatedTime());
         response.setUpdatedTime(product.getUpdatedTime());
         return response;

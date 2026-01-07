@@ -24,6 +24,13 @@ public class Product extends AuditableEntity {
 
     private String manufacturer;
 
+    private String model;
+
+    private String price;
+
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -42,6 +49,12 @@ public class Product extends AuditableEntity {
 
     @Column(name = "contact_email")
     private String contactEmail;
+
+    private String contact;
+
+    private String website;
+
+    private Boolean featured = false;
 
     @Column(columnDefinition = "TEXT")
     private String images;
