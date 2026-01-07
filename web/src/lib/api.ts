@@ -1,4 +1,5 @@
-import type { Result, LoginRequest, LoginResponse, MemberApplicationRequest, MemberApplicationResponse } from '@/types/auth';
+import type { Result, LoginRequest, LoginResponse, MemberApplicationRequest } from '@/types/auth';
+import type { MemberResponse } from '@/types/member';
 
 const API_BASE = '/api';
 
@@ -165,7 +166,7 @@ export async function validateToken(): Promise<Result<boolean>> {
  */
 export async function submitMemberApplication(
   application: MemberApplicationRequest
-): Promise<Result<MemberApplicationResponse>> {
+): Promise<Result<MemberResponse>> {
   const response = await fetch(`${API_BASE}/members/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -200,12 +201,9 @@ export async function checkEmail(email: string): Promise<Result<boolean>> {
 import type {
   Page,
   PageParams,
-  MemberResponse,
-  MemberApplicationResponse,
   MemberStatsResponse,
   MemberType,
   MemberStatus,
-  ApplicationStatus,
   IndividualMemberUpdateRequest,
   OrganizationMemberUpdateRequest,
 } from '@/types/member';
@@ -324,68 +322,26 @@ export async function getMemberStats(): Promise<Result<MemberStatsResponse>> {
   return request('/admin/members/stats');
 }
 
-// ========== Admin Application Management API ==========
+// ========== Admin Application Approval API ==========
 
 /**
- * 获取申请列表
- */
-export async function getApplications(params?: PageParams): Promise<Result<Page<MemberApplicationResponse>>> {
-  const query = buildPageParams(params);
-  return request(`/admin/members/applications${query ? `?${query}` : ''}`);
-}
-
-/**
- * 获取申请详情
- */
-export async function getApplicationById(id: number): Promise<Result<MemberApplicationResponse>> {
-  return request(`/admin/members/applications/${id}`);
-}
-
-/**
- * 搜索申请
- */
-export async function searchApplications(
-  keyword: string,
-  params?: PageParams
-): Promise<Result<Page<MemberApplicationResponse>>> {
-  const query = buildPageParams(params);
-  const keywordParam = `keyword=${encodeURIComponent(keyword)}`;
-  return request(`/admin/members/applications/search?${keywordParam}${query ? `&${query}` : ''}`);
-}
-
-/**
- * 按状态获取申请
- */
-export async function getApplicationsByStatus(
-  status: ApplicationStatus,
-  params?: PageParams
-): Promise<Result<Page<MemberApplicationResponse>>> {
-  const query = buildPageParams(params);
-  return request(`/admin/members/applications/by-status/${status}${query ? `?${query}` : ''}`);
-}
-
-/**
- * 按会员类型获取申请
- */
-export async function getApplicationsByMemberType(
-  type: MemberType,
-  params?: PageParams
-): Promise<Result<Page<MemberApplicationResponse>>> {
-  const query = buildPageParams(params);
-  return request(`/admin/members/applications/by-type/${type}${query ? `?${query}` : ''}`);
-}
-
-/**
- * 审核通过申请
+ * 审核通过会员申请
  */
 export async function approveApplication(id: number): Promise<Result<MemberResponse>> {
-  return request(`/admin/members/applications/${id}/approve`, { method: 'POST' });
+  return request(`/admin/members/${id}/approve`, { method: 'POST' });
 }
 
 /**
- * 审核拒绝申请
+ * 审核拒绝会员申请
  */
 export async function rejectApplication(id: number, reason?: string): Promise<Result<void>> {
   const query = reason ? `?reason=${encodeURIComponent(reason)}` : '';
-  return request(`/admin/members/applications/${id}/reject${query}`, { method: 'POST' });
+  return request(`/admin/members/${id}/reject${query}`, { method: 'POST' });
+}
+
+/**
+ * 获取待审核会员数量
+ */
+export async function getPendingCount(): Promise<Result<number>> {
+  return request('/admin/members/pending/count');
 }

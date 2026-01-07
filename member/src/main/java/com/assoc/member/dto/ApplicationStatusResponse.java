@@ -1,6 +1,6 @@
 package com.assoc.member.dto;
 
-import com.assoc.member.entity.ApplicationStatus;
+import com.assoc.member.entity.MemberStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,24 +11,22 @@ import java.time.LocalDateTime;
 @Data
 public class ApplicationStatusResponse {
 
-    private Long applicationId;
-    private ApplicationStatus status;
+    private Long memberId;
+    private MemberStatus status;
     private String statusDescription;
     private String rejectReason;
-    private Long memberId;
     private String memberNo;
     private LocalDateTime reviewedAt;
     private LocalDateTime createdTime;
 
-    public static ApplicationStatusResponse of(Long applicationId, ApplicationStatus status,
-            String rejectReason, Long memberId, String memberNo,
+    public static ApplicationStatusResponse of(Long memberId, MemberStatus status,
+            String rejectReason, String memberNo,
             LocalDateTime reviewedAt, LocalDateTime createdTime) {
         ApplicationStatusResponse response = new ApplicationStatusResponse();
-        response.setApplicationId(applicationId);
+        response.setMemberId(memberId);
         response.setStatus(status);
         response.setStatusDescription(status != null ? status.getDescription() : null);
         response.setRejectReason(rejectReason);
-        response.setMemberId(memberId);
         response.setMemberNo(memberNo);
         response.setReviewedAt(reviewedAt);
         response.setCreatedTime(createdTime);

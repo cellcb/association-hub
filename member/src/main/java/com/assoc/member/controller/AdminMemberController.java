@@ -2,7 +2,6 @@ package com.assoc.member.controller;
 
 import com.assoc.common.Result;
 import com.assoc.member.dto.*;
-import com.assoc.member.entity.ApplicationStatus;
 import com.assoc.member.entity.MemberStatus;
 import com.assoc.member.entity.MemberType;
 import com.assoc.member.service.MemberApplicationService;
@@ -18,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Admin member management controller
- * Handles member and application management for administrators
+ * Handles member management and approval workflow for administrators
  */
 @RestController
 @RequestMapping("/api/admin/members")
@@ -123,58 +122,27 @@ public class AdminMemberController {
         return Result.success(memberService.getStatistics());
     }
 
-    // ==================== Application Management ====================
+    // ==================== Application Approval ====================
 
-    @GetMapping("/applications")
-    @Operation(summary = "Get all applications", description = "Get paginated list of all applications")
-    public Result<Page<MemberApplicationResponse>> getAllApplications(
-            @PageableDefault(size = 20, sort = "createdTime") Pageable pageable) {
-        return Result.success(applicationService.getAllApplications(pageable));
-    }
-
-    @GetMapping("/applications/{id}")
-    @Operation(summary = "Get application by ID", description = "Get application details by ID")
-    public Result<MemberApplicationResponse> getApplicationById(@PathVariable Long id) {
-        return Result.success(applicationService.getApplicationById(id));
-    }
-
-    @GetMapping("/applications/search")
-    @Operation(summary = "Search applications", description = "Search applications by keyword")
-    public Result<Page<MemberApplicationResponse>> searchApplications(
-            @RequestParam String keyword,
-            @PageableDefault(size = 20, sort = "createdTime") Pageable pageable) {
-        return Result.success(applicationService.searchApplications(keyword, pageable));
-    }
-
-    @GetMapping("/applications/by-status/{status}")
-    @Operation(summary = "Get applications by status", description = "Get applications filtered by status")
-    public Result<Page<MemberApplicationResponse>> getApplicationsByStatus(
-            @PathVariable ApplicationStatus status,
-            @PageableDefault(size = 20, sort = "createdTime") Pageable pageable) {
-        return Result.success(applicationService.getApplicationsByStatus(status, pageable));
-    }
-
-    @GetMapping("/applications/by-type/{type}")
-    @Operation(summary = "Get applications by member type", description = "Get applications filtered by member type")
-    public Result<Page<MemberApplicationResponse>> getApplicationsByMemberType(
-            @PathVariable MemberType type,
-            @PageableDefault(size = 20, sort = "createdTime") Pageable pageable) {
-        return Result.success(applicationService.getApplicationsByMemberType(type, pageable));
-    }
-
-    @PostMapping("/applications/{id}/approve")
-    @Operation(summary = "Approve application", description = "Approve a member application and create user account")
+    @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve member application", description = "Approve a pending member application and enable user login")
     public Result<MemberResponse> approveApplication(@PathVariable Long id) {
         MemberResponse response = applicationService.approveApplication(id);
         return Result.success("Application approved successfully", response);
     }
 
-    @PostMapping("/applications/{id}/reject")
-    @Operation(summary = "Reject application", description = "Reject a member application")
+    @PostMapping("/{id}/reject")
+    @Operation(summary = "Reject member application", description = "Reject a pending member application")
     public Result<Void> rejectApplication(
             @PathVariable Long id,
             @RequestParam(required = false) String reason) {
         applicationService.rejectApplication(id, reason);
         return Result.success("Application rejected successfully", null);
+    }
+
+    @GetMapping("/pending/count")
+    @Operation(summary = "Count pending applications", description = "Get count of pending member applications")
+    public Result<Long> countPendingApplications() {
+        return Result.success(applicationService.countPendingApplications());
     }
 }

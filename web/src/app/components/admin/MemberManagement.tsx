@@ -1,8 +1,8 @@
-import { Search, Filter, UserPlus, MoreVertical, CheckCircle, XCircle, Clock, Edit, Trash2, Eye, X, User, Mail, Phone, Building, Calendar, Shield, FileText, Building2, Briefcase, Award, MapPin, Globe, Users, ClipboardList, Loader2, AlertCircle, PlayCircle, PauseCircle } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, Clock, Trash2, Eye, X, User, FileText, Building2, Users, ClipboardList, Loader2, AlertCircle, PlayCircle, PauseCircle } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Pagination } from './Pagination';
-import type { MemberResponse, MemberApplicationResponse, Page, MemberType, MemberStatus } from '@/types/member';
-import { memberTypeLabels, memberStatusLabels, applicationStatusLabels } from '@/types/member';
+import type { MemberResponse, Page, MemberType, MemberStatus } from '@/types/member';
+import { memberTypeLabels, memberStatusLabels } from '@/types/member';
 import {
   getMembers,
   searchMembers,
@@ -11,15 +11,12 @@ import {
   deleteMember,
   suspendMember,
   activateMember,
-  getApplications,
-  getApplicationsByStatus as getAppsByStatus,
-  getApplicationsByMemberType,
   approveApplication,
   rejectApplication,
 } from '@/lib/api';
 
 // Tab 类型
-type TabType = 'members' | 'applications';
+type TabType = 'members' | 'pending';
 
 // 会员状态显示标签
 const getMemberStatusLabel = (status: MemberStatus): string => {
@@ -48,8 +45,7 @@ export function MemberManagement() {
 
   // 选中项状态
   const [selectedMember, setSelectedMember] = useState<MemberResponse | null>(null);
-  const [selectedApplication, setSelectedApplication] = useState<MemberApplicationResponse | null>(null);
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  const [selectedPendingMember, setSelectedPendingMember] = useState<MemberResponse | null>(null);
 
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,16 +57,16 @@ export function MemberManagement() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
 
-  // 申请列表数据
-  const [applications, setApplications] = useState<MemberApplicationResponse[]>([]);
-  const [applicationsPage, setApplicationsPage] = useState<Page<MemberApplicationResponse> | null>(null);
-  const [applicationsLoading, setApplicationsLoading] = useState(false);
-  const [applicationsError, setApplicationsError] = useState<string | null>(null);
+  // 待审核列表数据
+  const [pendingMembers, setPendingMembers] = useState<MemberResponse[]>([]);
+  const [pendingPage, setPendingPage] = useState<Page<MemberResponse> | null>(null);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingError, setPendingError] = useState<string | null>(null);
 
   // 操作状态
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  // 加载会员列表
+  // 加载会员列表（排除 PENDING 和 REJECTED）
   const loadMembers = useCallback(async () => {
     setMembersLoading(true);
     setMembersError(null);
@@ -95,7 +91,11 @@ export function MemberManagement() {
       }
 
       if (result.success && result.data) {
-        setMembers(result.data.content);
+        // 过滤掉 PENDING 和 REJECTED 状态的会员（在会员列表标签页）
+        const filteredContent = result.data.content.filter(
+          m => m.status !== 'PENDING' && m.status !== 'REJECTED'
+        );
+        setMembers(filteredContent);
         setMembersPage(result.data);
       } else {
         setMembersError(result.message || '加载会员列表失败');
@@ -107,38 +107,39 @@ export function MemberManagement() {
     }
   }, [currentPage, itemsPerPage, searchTerm, filterType, filterStatus]);
 
-  // 加载申请列表
-  const loadApplications = useCallback(async () => {
-    setApplicationsLoading(true);
-    setApplicationsError(null);
+  // 加载待审核列表
+  const loadPendingMembers = useCallback(async () => {
+    setPendingLoading(true);
+    setPendingError(null);
     try {
       const params = { page: currentPage - 1, size: itemsPerPage };
       let result;
 
       if (filterType !== '全部') {
         const type = filterType === '个人会员' ? 'INDIVIDUAL' : 'ORGANIZATION';
-        result = await getApplicationsByMemberType(type as MemberType, params);
+        // 先按类型获取，再过滤 PENDING/REJECTED
+        result = await getMembersByType(type as MemberType, params);
       } else if (filterStatus !== '全部') {
-        const statusMap: Record<string, 'PENDING' | 'APPROVED' | 'REJECTED'> = {
+        const statusMap: Record<string, MemberStatus> = {
           '待审核': 'PENDING',
-          '已通过': 'APPROVED',
           '已拒绝': 'REJECTED',
         };
-        result = await getAppsByStatus(statusMap[filterStatus], params);
+        result = await getMembersByStatus(statusMap[filterStatus], params);
       } else {
-        result = await getApplications(params);
+        // 默认显示待审核
+        result = await getMembersByStatus('PENDING', params);
       }
 
       if (result.success && result.data) {
-        setApplications(result.data.content);
-        setApplicationsPage(result.data);
+        setPendingMembers(result.data.content);
+        setPendingPage(result.data);
       } else {
-        setApplicationsError(result.message || '加载申请列表失败');
+        setPendingError(result.message || '加载待审核列表失败');
       }
     } catch (error) {
-      setApplicationsError('网络错误，请重试');
+      setPendingError('网络错误，请重试');
     } finally {
-      setApplicationsLoading(false);
+      setPendingLoading(false);
     }
   }, [currentPage, itemsPerPage, filterType, filterStatus]);
 
@@ -147,9 +148,9 @@ export function MemberManagement() {
     if (activeTab === 'members') {
       loadMembers();
     } else {
-      loadApplications();
+      loadPendingMembers();
     }
-  }, [activeTab, loadMembers, loadApplications]);
+  }, [activeTab, loadMembers, loadPendingMembers]);
 
   // 切换 Tab 时重置分页和筛选
   const handleTabChange = (tab: TabType) => {
@@ -228,7 +229,7 @@ export function MemberManagement() {
     try {
       const result = await approveApplication(id);
       if (result.success) {
-        loadApplications();
+        loadPendingMembers();
       } else {
         alert(result.message || '审核失败');
       }
@@ -241,15 +242,15 @@ export function MemberManagement() {
 
   // 处理审核拒绝
   const confirmReject = async () => {
-    if (!selectedApplication) return;
-    setActionLoading(selectedApplication.id);
+    if (!selectedPendingMember) return;
+    setActionLoading(selectedPendingMember.id);
     try {
-      const result = await rejectApplication(selectedApplication.id, rejectReason);
+      const result = await rejectApplication(selectedPendingMember.id, rejectReason);
       if (result.success) {
         setShowRejectModal(false);
-        setSelectedApplication(null);
+        setSelectedPendingMember(null);
         setRejectReason('');
-        loadApplications();
+        loadPendingMembers();
       } else {
         alert(result.message || '操作失败');
       }
@@ -260,13 +261,13 @@ export function MemberManagement() {
     }
   };
 
-  // 分页相关 (适配 Spring Boot 3.x 返回的嵌套分页结构)
+  // 分页相关
   const totalPages = activeTab === 'members'
     ? (membersPage?.page?.totalPages || 1)
-    : (applicationsPage?.page?.totalPages || 1);
+    : (pendingPage?.page?.totalPages || 1);
   const totalItems = activeTab === 'members'
     ? (membersPage?.page?.totalElements || 0)
-    : (applicationsPage?.page?.totalElements || 0);
+    : (pendingPage?.page?.totalElements || 0);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -280,6 +281,13 @@ export function MemberManagement() {
   // 会员状态徽章
   const getMemberStatusBadge = (status: MemberStatus) => {
     switch (status) {
+      case 'PENDING':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full text-xs">
+            <Clock className="w-3 h-3" />
+            待审核
+          </span>
+        );
       case 'ACTIVE':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
@@ -296,31 +304,9 @@ export function MemberManagement() {
         );
       case 'EXPIRED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-full text-xs">
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
             <XCircle className="w-3 h-3" />
             已过期
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // 申请状态徽章
-  const getApplicationStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full text-xs">
-            <Clock className="w-3 h-3" />
-            待审核
-          </span>
-        );
-      case 'APPROVED':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
-            <CheckCircle className="w-3 h-3" />
-            已通过
           </span>
         );
       case 'REJECTED':
@@ -348,8 +334,8 @@ export function MemberManagement() {
   };
 
   // 打开拒绝模态框
-  const handleOpenRejectModal = (application: MemberApplicationResponse) => {
-    setSelectedApplication(application);
+  const handleOpenRejectModal = (member: MemberResponse) => {
+    setSelectedPendingMember(member);
     setRejectReason('');
     setShowRejectModal(true);
   };
@@ -377,9 +363,9 @@ export function MemberManagement() {
             会员列表
           </button>
           <button
-            onClick={() => handleTabChange('applications')}
+            onClick={() => handleTabChange('pending')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'applications'
+              activeTab === 'pending'
                 ? 'text-blue-600 border-blue-600'
                 : 'text-gray-500 border-transparent hover:text-gray-700'
             }`}
@@ -407,9 +393,9 @@ export function MemberManagement() {
               />
             </div>
           )}
-          {activeTab === 'applications' && (
+          {activeTab === 'pending' && (
             <div className="flex-1">
-              <span className="text-gray-600">审核会员申请，通过后自动创建会员账号</span>
+              <span className="text-gray-600">审核会员申请，通过后自动激活会员账号登录权限</span>
             </div>
           )}
         </div>
@@ -444,7 +430,7 @@ export function MemberManagement() {
             </select>
           )}
 
-          {activeTab === 'applications' && (
+          {activeTab === 'pending' && (
             <select
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
@@ -452,7 +438,6 @@ export function MemberManagement() {
             >
               <option>全部</option>
               <option>待审核</option>
-              <option>已通过</option>
               <option>已拒绝</option>
             </select>
           )}
@@ -464,7 +449,7 @@ export function MemberManagement() {
       </div>
 
       {/* Loading State */}
-      {(activeTab === 'members' ? membersLoading : applicationsLoading) && (
+      {(activeTab === 'members' ? membersLoading : pendingLoading) && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           <span className="ml-3 text-gray-600">加载中...</span>
@@ -472,12 +457,12 @@ export function MemberManagement() {
       )}
 
       {/* Error State */}
-      {(activeTab === 'members' ? membersError : applicationsError) && (
+      {(activeTab === 'members' ? membersError : pendingError) && (
         <div className="bg-white rounded-xl border border-red-200 p-12 flex items-center justify-center">
           <AlertCircle className="w-8 h-8 text-red-500" />
-          <span className="ml-3 text-red-600">{activeTab === 'members' ? membersError : applicationsError}</span>
+          <span className="ml-3 text-red-600">{activeTab === 'members' ? membersError : pendingError}</span>
           <button
-            onClick={() => activeTab === 'members' ? loadMembers() : loadApplications()}
+            onClick={() => activeTab === 'members' ? loadMembers() : loadPendingMembers()}
             className="ml-4 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
           >
             重试
@@ -600,8 +585,8 @@ export function MemberManagement() {
         </div>
       )}
 
-      {/* Applications Table */}
-      {activeTab === 'applications' && !applicationsLoading && !applicationsError && (
+      {/* Pending Applications Table */}
+      {activeTab === 'pending' && !pendingLoading && !pendingError && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -616,59 +601,71 @@ export function MemberManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {applications.length === 0 ? (
+                {pendingMembers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      暂无申请数据
+                      暂无待审核申请
                     </td>
                   </tr>
                 ) : (
-                  applications.map((app) => (
-                    <tr key={app.id} className="hover:bg-gray-50">
+                  pendingMembers.map((member) => (
+                    <tr key={member.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{app.username}</div>
+                        <div className="text-sm text-gray-900">{member.displayName}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-gray-900">{getMemberTypeLabel(app.memberType)}</span>
+                        <span className="text-sm text-gray-900">{getMemberTypeLabel(member.memberType)}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-600">
-                          <div>{app.email}</div>
-                          {app.phone && <div>{app.phone}</div>}
+                          {member.memberType === 'INDIVIDUAL' && member.individualMember && (
+                            <>
+                              <div>{member.individualMember.email}</div>
+                              {member.individualMember.phone && <div>{member.individualMember.phone}</div>}
+                            </>
+                          )}
+                          {member.memberType === 'ORGANIZATION' && member.organizationMember && (
+                            <>
+                              <div>{member.organizationMember.contactEmail}</div>
+                              {member.organizationMember.contactPhone && <div>{member.organizationMember.contactPhone}</div>}
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-600">
-                          {new Date(app.createdTime).toLocaleDateString()}
+                          {new Date(member.createdTime).toLocaleDateString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {getApplicationStatusBadge(app.status)}
+                        {getMemberStatusBadge(member.status)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {app.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleViewMember(member)}
+                            className="p-1 text-gray-400 hover:text-blue-600"
+                            title="查看详情"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {member.status === 'PENDING' && (
                             <>
                               <button
-                                onClick={() => handleApprove(app.id)}
-                                disabled={actionLoading === app.id}
+                                onClick={() => handleApprove(member.id)}
+                                disabled={actionLoading === member.id}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs disabled:opacity-50"
                               >
-                                {actionLoading === app.id ? '处理中...' : '通过'}
+                                {actionLoading === member.id ? '处理中...' : '通过'}
                               </button>
                               <button
-                                onClick={() => handleOpenRejectModal(app)}
-                                disabled={actionLoading === app.id}
+                                onClick={() => handleOpenRejectModal(member)}
+                                disabled={actionLoading === member.id}
                                 className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs disabled:opacity-50"
                               >
                                 拒绝
                               </button>
                             </>
-                          )}
-                          {app.status === 'REJECTED' && app.rejectReason && (
-                            <span className="text-xs text-red-500" title={app.rejectReason}>
-                              拒绝原因: {app.rejectReason.slice(0, 20)}...
-                            </span>
                           )}
                         </div>
                       </td>
@@ -727,12 +724,12 @@ export function MemberManagement() {
       )}
 
       {/* Reject Application Modal */}
-      {showRejectModal && selectedApplication && (
+      {showRejectModal && selectedPendingMember && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96">
             <h3 className="text-xl text-gray-900 mb-4">拒绝申请</h3>
             <p className="text-sm text-gray-600 mb-4">
-              确定要拒绝 <strong>{selectedApplication.username}</strong> 的会员申请吗？
+              确定要拒绝 <strong>{selectedPendingMember.displayName}</strong> 的会员申请吗？
             </p>
             <div className="mb-4">
               <label className="block text-sm text-gray-700 mb-2">拒绝原因（可选）</label>
@@ -747,16 +744,16 @@ export function MemberManagement() {
             <div className="flex justify-end gap-2">
               <button
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                onClick={() => { setShowRejectModal(false); setSelectedApplication(null); setRejectReason(''); }}
+                onClick={() => { setShowRejectModal(false); setSelectedPendingMember(null); setRejectReason(''); }}
               >
                 取消
               </button>
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 onClick={confirmReject}
-                disabled={actionLoading === selectedApplication.id}
+                disabled={actionLoading === selectedPendingMember.id}
               >
-                {actionLoading === selectedApplication.id ? '处理中...' : '确认拒绝'}
+                {actionLoading === selectedPendingMember.id ? '处理中...' : '确认拒绝'}
               </button>
             </div>
           </div>

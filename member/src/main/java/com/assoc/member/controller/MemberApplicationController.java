@@ -3,7 +3,7 @@ package com.assoc.member.controller;
 import com.assoc.common.Result;
 import com.assoc.member.dto.ApplicationStatusResponse;
 import com.assoc.member.dto.MemberApplicationRequest;
-import com.assoc.member.dto.MemberApplicationResponse;
+import com.assoc.member.dto.MemberResponse;
 import com.assoc.member.service.MemberApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,8 +25,8 @@ public class MemberApplicationController {
 
     @PostMapping("/apply")
     @Operation(summary = "Submit member application", description = "Submit a new member application with account credentials")
-    public Result<MemberApplicationResponse> submitApplication(@Valid @RequestBody MemberApplicationRequest request) {
-        MemberApplicationResponse response = applicationService.submitApplication(request);
+    public Result<MemberResponse> submitApplication(@Valid @RequestBody MemberApplicationRequest request) {
+        MemberResponse response = applicationService.submitApplication(request);
         return Result.success("Application submitted successfully", response);
     }
 
@@ -44,10 +44,10 @@ public class MemberApplicationController {
         return Result.success(available);
     }
 
-    @GetMapping("/application/{id}/status")
-    @Operation(summary = "Get application status", description = "Query the status of a member application")
-    public Result<ApplicationStatusResponse> getApplicationStatus(@PathVariable Long id) {
-        ApplicationStatusResponse response = applicationService.getApplicationStatus(id);
+    @GetMapping("/application/{memberId}/status")
+    @Operation(summary = "Get application status", description = "Query the status of a member application by member ID")
+    public Result<ApplicationStatusResponse> getApplicationStatus(@PathVariable Long memberId) {
+        ApplicationStatusResponse response = applicationService.getApplicationStatus(memberId);
         return Result.success(response);
     }
 }

@@ -1,11 +1,8 @@
 // 会员类型
 export type MemberType = 'INDIVIDUAL' | 'ORGANIZATION';
 
-// 会员状态
-export type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
-
-// 申请状态
-export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+// 会员状态 (包含申请状态)
+export type MemberStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'REJECTED';
 
 // 单位类型
 export type OrganizationType = 'EQUIPMENT' | 'CONSTRUCTION' | 'INSTITUTION' | 'MANAGEMENT' | 'DESIGN';
@@ -96,25 +93,6 @@ export interface MemberResponse {
   organizationMember?: OrganizationMemberResponse;
 }
 
-// 会员申请响应
-export interface MemberApplicationResponse {
-  id: number;
-  memberType: MemberType;
-  memberTypeDescription: string;
-  username: string;
-  email: string;
-  phone: string;
-  status: ApplicationStatus;
-  statusDescription: string;
-  applicationData: string;
-  reviewedBy: number;
-  reviewedAt: string;
-  rejectReason: string;
-  memberId: number;
-  createdTime: string;
-  updatedTime: string;
-}
-
 // 会员统计响应
 export interface MemberStatsResponse {
   totalMembers: number;
@@ -175,14 +153,10 @@ export const memberTypeLabels: Record<MemberType, string> = {
 };
 
 export const memberStatusLabels: Record<MemberStatus, string> = {
+  PENDING: '待审核',
   ACTIVE: '正常',
   SUSPENDED: '已暂停',
   EXPIRED: '已过期',
-};
-
-export const applicationStatusLabels: Record<ApplicationStatus, string> = {
-  PENDING: '待审核',
-  APPROVED: '已通过',
   REJECTED: '已拒绝',
 };
 

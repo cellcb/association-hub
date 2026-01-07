@@ -1,25 +1,5 @@
 -- Member module initialization
--- Tables: mbr_member_application, mbr_member, mbr_individual_member, mbr_organization_member
-
--- Member application table
-CREATE TABLE mbr_member_application (
-    id BIGSERIAL PRIMARY KEY,
-    member_type VARCHAR(20) NOT NULL,
-    username VARCHAR(50) NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    application_data TEXT,
-    reviewed_by BIGINT,
-    reviewed_at TIMESTAMP,
-    reject_reason VARCHAR(500),
-    member_id BIGINT,
-    created_by BIGINT,
-    updated_by BIGINT,
-    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- Tables: mbr_member, mbr_individual_member, mbr_organization_member
 
 -- Member base table
 CREATE TABLE mbr_member (
@@ -27,10 +7,12 @@ CREATE TABLE mbr_member (
     user_id BIGINT NOT NULL UNIQUE,
     member_no VARCHAR(50) NOT NULL UNIQUE,
     member_type VARCHAR(20) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     approved_at TIMESTAMP,
     expired_at TIMESTAMP,
-    application_id BIGINT,
+    reject_reason VARCHAR(500),
+    reviewed_by BIGINT,
+    reviewed_at TIMESTAMP,
     created_by BIGINT,
     updated_by BIGINT,
     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -96,11 +78,6 @@ CREATE TABLE mbr_organization_member (
 );
 
 -- Indexes
-CREATE INDEX idx_mbr_application_status ON mbr_member_application(status);
-CREATE INDEX idx_mbr_application_username ON mbr_member_application(username);
-CREATE INDEX idx_mbr_application_email ON mbr_member_application(email);
-CREATE INDEX idx_mbr_application_member_type ON mbr_member_application(member_type);
-
 CREATE INDEX idx_mbr_member_user_id ON mbr_member(user_id);
 CREATE INDEX idx_mbr_member_status ON mbr_member(status);
 CREATE INDEX idx_mbr_member_type ON mbr_member(member_type);
@@ -116,12 +93,10 @@ CREATE INDEX idx_mbr_organization_type ON mbr_organization_member(org_type);
 -- ALTER TABLE mbr_member ADD CONSTRAINT fk_member_user FOREIGN KEY (user_id) REFERENCES iam_user(id);
 
 -- Comments
-COMMENT ON TABLE mbr_member_application IS 'Member application records';
 COMMENT ON TABLE mbr_member IS 'Member base information';
 COMMENT ON TABLE mbr_individual_member IS 'Individual member details';
 COMMENT ON TABLE mbr_organization_member IS 'Organization member details';
 
-COMMENT ON COLUMN mbr_member_application.application_data IS 'Complete application form data in JSON format';
 COMMENT ON COLUMN mbr_individual_member.expertise IS 'Professional expertise fields in JSON array format';
 COMMENT ON COLUMN mbr_organization_member.qualifications IS 'Qualifications and certifications in JSON array format';
 COMMENT ON COLUMN mbr_organization_member.projects IS 'Project experience in JSON array format';

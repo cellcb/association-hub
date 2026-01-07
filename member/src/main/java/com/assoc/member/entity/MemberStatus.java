@@ -5,6 +5,11 @@ package com.assoc.member.entity;
  */
 public enum MemberStatus {
     /**
+     * Pending approval
+     */
+    PENDING("pending", "待审核"),
+
+    /**
      * Active member
      */
     ACTIVE("active", "有效"),
@@ -17,7 +22,12 @@ public enum MemberStatus {
     /**
      * Suspended member
      */
-    SUSPENDED("suspended", "已暂停");
+    SUSPENDED("suspended", "已暂停"),
+
+    /**
+     * Rejected application
+     */
+    REJECTED("rejected", "已拒绝");
 
     private final String code;
     private final String description;

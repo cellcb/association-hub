@@ -24,7 +24,6 @@ public class MemberServiceImpl implements MemberService {
     private final MemberRepository memberRepository;
     private final IndividualMemberRepository individualMemberRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
-    private final MemberApplicationRepository applicationRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -217,7 +216,7 @@ public class MemberServiceImpl implements MemberService {
         long suspended = memberRepository.countByStatus(MemberStatus.SUSPENDED);
         long individual = memberRepository.countByMemberType(MemberType.INDIVIDUAL);
         long organization = memberRepository.countByMemberType(MemberType.ORGANIZATION);
-        long pending = applicationRepository.countPending();
+        long pending = memberRepository.countByStatus(MemberStatus.PENDING);
 
         return MemberStatsResponse.builder()
                 .totalMembers(total)

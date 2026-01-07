@@ -47,7 +47,7 @@ public class Member extends AuditableEntity {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private MemberStatus status = MemberStatus.ACTIVE;
+    private MemberStatus status = MemberStatus.PENDING;
 
     /**
      * Approval time
@@ -62,10 +62,22 @@ public class Member extends AuditableEntity {
     private LocalDateTime expiredAt;
 
     /**
-     * Application ID reference
+     * Reject reason (when status is REJECTED)
      */
-    @Column(name = "application_id")
-    private Long applicationId;
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    /**
+     * Reviewed by user ID
+     */
+    @Column(name = "reviewed_by")
+    private Long reviewedBy;
+
+    /**
+     * Reviewed at time
+     */
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
 
     /**
      * Individual member details (for INDIVIDUAL type)
@@ -98,6 +110,20 @@ public class Member extends AuditableEntity {
     public boolean isExpired() {
         return MemberStatus.EXPIRED.equals(this.status) ||
                (this.expiredAt != null && this.expiredAt.isBefore(LocalDateTime.now()));
+    }
+
+    /**
+     * Check if member is pending approval
+     */
+    public boolean isPending() {
+        return MemberStatus.PENDING.equals(this.status);
+    }
+
+    /**
+     * Check if member application is rejected
+     */
+    public boolean isRejected() {
+        return MemberStatus.REJECTED.equals(this.status);
     }
 
     /**

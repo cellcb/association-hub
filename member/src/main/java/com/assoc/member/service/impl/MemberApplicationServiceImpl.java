@@ -11,8 +11,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -30,7 +26,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MemberApplicationServiceImpl implements MemberApplicationService {
 
-    private final MemberApplicationRepository applicationRepository;
     private final MemberRepository memberRepository;
     private final IndividualMemberRepository individualMemberRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -40,310 +35,209 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
 
     @Override
     @Transactional
-    public MemberApplicationResponse submitApplication(MemberApplicationRequest request) {
+    public MemberResponse submitApplication(MemberApplicationRequest request) {
         // Validate username availability
         if (!isUsernameAvailable(request.getUsername())) {
-            throw new BusinessException("Username already exists");
+            throw new BusinessException("用户名已存在");
         }
 
         // Validate email availability
         if (!isEmailAvailable(request.getEmail())) {
-            throw new BusinessException("Email already exists");
+            throw new BusinessException("邮箱已被使用");
         }
 
-        // Create application entity
-        MemberApplication application = new MemberApplication();
-        application.setMemberType(request.getMemberType());
-        application.setUsername(request.getUsername());
-        application.setPassword(passwordEncoder.encode(request.getPassword()));
-        application.setEmail(request.getEmail());
-        application.setPhone(request.getPhone());
-        application.setStatus(ApplicationStatus.PENDING);
-
-        // Store application data as JSON
-        try {
-            if (request.getMemberType() == MemberType.INDIVIDUAL) {
-                application.setApplicationData(objectMapper.writeValueAsString(request.getIndividualData()));
-            } else {
-                application.setApplicationData(objectMapper.writeValueAsString(request.getOrganizationData()));
-            }
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize application data", e);
-            throw new BusinessException("Failed to process application data");
-        }
-
-        application = applicationRepository.save(application);
-        log.info("Member application submitted: id={}, username={}", application.getId(), application.getUsername());
-
-        return toResponse(application);
-    }
-
-    @Override
-    public MemberApplicationResponse getApplicationById(Long id) {
-        MemberApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Application not found: " + id));
-        return toResponse(application);
-    }
-
-    @Override
-    public ApplicationStatusResponse getApplicationStatus(Long id) {
-        MemberApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Application not found: " + id));
-
-        String memberNo = null;
-        if (application.getMemberId() != null) {
-            memberNo = memberRepository.findById(application.getMemberId())
-                    .map(Member::getMemberNo)
-                    .orElse(null);
-        }
-
-        return ApplicationStatusResponse.of(
-                application.getId(),
-                application.getStatus(),
-                application.getRejectReason(),
-                application.getMemberId(),
-                memberNo,
-                application.getReviewedAt(),
-                application.getCreatedTime()
-        );
-    }
-
-    @Override
-    public Page<MemberApplicationResponse> getAllApplications(Pageable pageable) {
-        return applicationRepository.findAll(pageable).map(this::toResponse);
-    }
-
-    @Override
-    public Page<MemberApplicationResponse> getApplicationsByStatus(ApplicationStatus status, Pageable pageable) {
-        return applicationRepository.findByStatus(status, pageable).map(this::toResponse);
-    }
-
-    @Override
-    public Page<MemberApplicationResponse> getApplicationsByMemberType(MemberType memberType, Pageable pageable) {
-        return applicationRepository.findByMemberType(memberType, pageable).map(this::toResponse);
-    }
-
-    @Override
-    public Page<MemberApplicationResponse> searchApplications(String keyword, Pageable pageable) {
-        return applicationRepository.searchByKeyword(keyword, pageable).map(this::toResponse);
-    }
-
-    @Override
-    @Transactional
-    public MemberResponse approveApplication(Long id) {
-        MemberApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Application not found: " + id));
-
-        if (!application.isPending()) {
-            throw new BusinessException("Application is not pending: " + application.getStatus());
-        }
-
-        // Check username availability again (in case it was taken)
-        if (userService.existsByUsername(application.getUsername())) {
-            throw new BusinessException("Username already taken: " + application.getUsername());
-        }
-
-        // 1. Create IAM user account
+        // 1. Create IAM user account (DISABLED - cannot login until approved)
         UserRequest userRequest = new UserRequest();
-        userRequest.setUsername(application.getUsername());
-        userRequest.setPassword(application.getPassword());
-        userRequest.setPasswordEncrypted(true); // 标记密码已加密，避免二次加密
-        userRequest.setEmail(application.getEmail());
-        userRequest.setPhone(application.getPhone());
-        userRequest.setStatus(1); // Active
+        userRequest.setUsername(request.getUsername());
+        userRequest.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRequest.setPasswordEncrypted(true);
+        userRequest.setEmail(request.getEmail());
+        userRequest.setPhone(request.getPhone());
+        userRequest.setStatus(0); // Disabled - cannot login
 
         // Set real name based on member type
-        if (application.getMemberType() == MemberType.INDIVIDUAL) {
-            try {
-                MemberApplicationRequest.IndividualApplicationData data =
-                        objectMapper.readValue(application.getApplicationData(),
-                                MemberApplicationRequest.IndividualApplicationData.class);
-                userRequest.setRealName(data.getName());
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to parse individual application data", e);
-            }
-        } else {
-            try {
-                MemberApplicationRequest.OrganizationApplicationData data =
-                        objectMapper.readValue(application.getApplicationData(),
-                                MemberApplicationRequest.OrganizationApplicationData.class);
-                userRequest.setRealName(data.getContactPerson());
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to parse organization application data", e);
-            }
+        if (request.getMemberType() == MemberType.INDIVIDUAL && request.getIndividualData() != null) {
+            userRequest.setRealName(request.getIndividualData().getName());
+        } else if (request.getOrganizationData() != null) {
+            userRequest.setRealName(request.getOrganizationData().getContactPerson());
         }
 
         var userResponse = userService.createUser(userRequest);
         Long userId = userResponse.getId();
-        log.info("User response returned, userId={}", userId);
+        log.info("Created disabled user for application: userId={}, username={}", userId, request.getUsername());
 
-        try {
-        // 2. Create Member record
+        // 2. Create Member record with PENDING status
         Member member = new Member();
         member.setUserId(userId);
-        log.info("Generating member number...");
-        member.setMemberNo(generateMemberNo(application.getMemberType()));
-        log.info("Generated memberNo={}", member.getMemberNo());
-        member.setMemberType(application.getMemberType());
-        member.setStatus(MemberStatus.ACTIVE);
-        member.setApprovedAt(LocalDateTime.now());
-        member.setApplicationId(application.getId());
-        // Set expiration to 1 year from now
-        member.setExpiredAt(LocalDateTime.now().plusYears(1));
+        member.setMemberNo(generateMemberNo(request.getMemberType()));
+        member.setMemberType(request.getMemberType());
+        member.setStatus(MemberStatus.PENDING);
 
-        log.info("Saving member record...");
         member = memberRepository.save(member);
-        log.info("Member saved with id={}", member.getId());
+        log.info("Created pending member: memberId={}, memberNo={}", member.getId(), member.getMemberNo());
 
         // 3. Create member detail record
-        log.info("Creating member detail record for type={}", application.getMemberType());
-        if (application.getMemberType() == MemberType.INDIVIDUAL) {
-            createIndividualMember(member, application);
+        if (request.getMemberType() == MemberType.INDIVIDUAL) {
+            createIndividualMember(member, request.getIndividualData(), request.getPhone(), request.getEmail());
         } else {
-            createOrganizationMember(member, application);
+            createOrganizationMember(member, request.getOrganizationData(), request.getPhone(), request.getEmail());
         }
-        log.info("Member detail record created");
 
-        // 4. Update application status
-        application.setStatus(ApplicationStatus.APPROVED);
-        application.setReviewedAt(LocalDateTime.now());
-        application.setMemberId(member.getId());
-        applicationRepository.save(application);
-
-        // 5. Assign default member role (if exists)
-        // This would need to be configured in the system
-        // userService.assignRoles(userId, Set.of(memberRoleId));
-
-        log.info("Member application approved: applicationId={}, memberId={}, userId={}",
-                id, member.getId(), userId);
+        log.info("Member application submitted: memberId={}, username={}", member.getId(), request.getUsername());
 
         // Reload member with details
         return toMemberResponse(memberRepository.findByIdWithDetails(member.getId())
                 .orElseThrow(() -> new BusinessException("Member not found after creation")));
-        } catch (Exception e) {
-            log.error("Error in approveApplication after user creation", e);
-            throw e;
-        }
+    }
+
+    @Override
+    public ApplicationStatusResponse getApplicationStatus(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException("会员不存在: " + memberId));
+
+        return ApplicationStatusResponse.of(
+                member.getId(),
+                member.getStatus(),
+                member.getRejectReason(),
+                member.getMemberNo(),
+                member.getReviewedAt(),
+                member.getCreatedTime()
+        );
     }
 
     @Override
     @Transactional
-    public void rejectApplication(Long id, String reason) {
-        MemberApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Application not found: " + id));
+    public MemberResponse approveApplication(Long memberId) {
+        Member member = memberRepository.findByIdWithDetails(memberId)
+                .orElseThrow(() -> new BusinessException("会员不存在: " + memberId));
 
-        if (!application.isPending()) {
-            throw new BusinessException("Application is not pending: " + application.getStatus());
+        if (!member.isPending()) {
+            throw new BusinessException("会员申请不在待审核状态: " + member.getStatus().getDescription());
         }
 
-        application.setStatus(ApplicationStatus.REJECTED);
-        application.setRejectReason(reason);
-        application.setReviewedAt(LocalDateTime.now());
-        applicationRepository.save(application);
+        // 1. Enable IAM user (allow login)
+        userService.enableUser(member.getUserId());
+        log.info("Enabled user for approved member: userId={}", member.getUserId());
 
-        log.info("Member application rejected: id={}, reason={}", id, reason);
+        // 2. Update member status
+        member.setStatus(MemberStatus.ACTIVE);
+        member.setApprovedAt(LocalDateTime.now());
+        member.setReviewedAt(LocalDateTime.now());
+        // Set expiration to 1 year from now
+        member.setExpiredAt(LocalDateTime.now().plusYears(1));
+
+        memberRepository.save(member);
+
+        log.info("Member application approved: memberId={}, userId={}", memberId, member.getUserId());
+
+        return toMemberResponse(member);
+    }
+
+    @Override
+    @Transactional
+    public void rejectApplication(Long memberId, String reason) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException("会员不存在: " + memberId));
+
+        if (!member.isPending()) {
+            throw new BusinessException("会员申请不在待审核状态: " + member.getStatus().getDescription());
+        }
+
+        member.setStatus(MemberStatus.REJECTED);
+        member.setRejectReason(reason);
+        member.setReviewedAt(LocalDateTime.now());
+        memberRepository.save(member);
+
+        log.info("Member application rejected: memberId={}, reason={}", memberId, reason);
     }
 
     @Override
     public boolean isUsernameAvailable(String username) {
-        // Check both applications and existing users
-        return !applicationRepository.existsByUsername(username) &&
-               !userService.existsByUsername(username);
+        return !userService.existsByUsername(username);
     }
 
     @Override
     public boolean isEmailAvailable(String email) {
-        // Check both applications and existing users
-        return !applicationRepository.existsByEmail(email) &&
-               !userService.existsByEmail(email);
+        return !userService.existsByEmail(email);
     }
 
     @Override
     public long countPendingApplications() {
-        return applicationRepository.countPending();
+        return memberRepository.countByStatus(MemberStatus.PENDING);
     }
 
-    private void createIndividualMember(Member member, MemberApplication application) {
-        try {
-            MemberApplicationRequest.IndividualApplicationData data =
-                    objectMapper.readValue(application.getApplicationData(),
-                            MemberApplicationRequest.IndividualApplicationData.class);
-
-            IndividualMember individual = new IndividualMember();
-            individual.setMember(member);
-            individual.setName(data.getName());
-            individual.setGender(data.getGender());
-            individual.setIdCard(data.getIdCard());
-            individual.setPhone(application.getPhone());
-            individual.setEmail(application.getEmail());
-            individual.setOrganization(data.getOrganization());
-            individual.setPosition(data.getPosition());
-            individual.setTitle(data.getTitle());
-            if (data.getExpertise() != null) {
+    private void createIndividualMember(Member member, MemberApplicationRequest.IndividualApplicationData data,
+                                        String phone, String email) {
+        IndividualMember individual = new IndividualMember();
+        individual.setMember(member);
+        individual.setName(data.getName());
+        individual.setGender(data.getGender());
+        individual.setIdCard(data.getIdCard());
+        individual.setPhone(phone);
+        individual.setEmail(email);
+        individual.setOrganization(data.getOrganization());
+        individual.setPosition(data.getPosition());
+        individual.setTitle(data.getTitle());
+        if (data.getExpertise() != null) {
+            try {
                 individual.setExpertise(objectMapper.writeValueAsString(data.getExpertise()));
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize expertise", e);
             }
-            individual.setProvince(data.getProvince());
-            individual.setCity(data.getCity());
-            individual.setAddress(data.getAddress());
-            individual.setEducation(data.getEducation());
-            individual.setExperience(data.getExperience());
-            individual.setAchievements(data.getAchievements());
-            individual.setRecommendation(data.getRecommendation());
-
-            individualMemberRepository.save(individual);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse individual application data", e);
-            throw new BusinessException("Failed to process individual member data");
         }
+        individual.setProvince(data.getProvince());
+        individual.setCity(data.getCity());
+        individual.setAddress(data.getAddress());
+        individual.setEducation(data.getEducation());
+        individual.setExperience(data.getExperience());
+        individual.setAchievements(data.getAchievements());
+        individual.setRecommendation(data.getRecommendation());
+
+        individualMemberRepository.save(individual);
+        log.info("Created individual member detail: memberId={}", member.getId());
     }
 
-    private void createOrganizationMember(Member member, MemberApplication application) {
-        try {
-            log.info("Creating organization member for memberId={}", member.getId());
-            MemberApplicationRequest.OrganizationApplicationData data =
-                    objectMapper.readValue(application.getApplicationData(),
-                            MemberApplicationRequest.OrganizationApplicationData.class);
-            log.info("Parsed application data: orgName={}, orgType={}", data.getOrgName(), data.getOrgType());
-
-            OrganizationMember organization = new OrganizationMember();
-            organization.setMember(member);
-            organization.setOrgName(data.getOrgName());
-            organization.setOrgType(OrganizationType.valueOf(data.getOrgType().toUpperCase()));
-            organization.setSocialCreditCode(data.getSocialCreditCode());
-            organization.setLegalRepresentative(data.getLegalRepresentative());
-            organization.setContactPerson(data.getContactPerson());
-            organization.setContactPhone(data.getContactPhone() != null ? data.getContactPhone() : application.getPhone());
-            organization.setContactEmail(data.getContactEmail() != null ? data.getContactEmail() : application.getEmail());
-            if (data.getEstablishmentDate() != null && !data.getEstablishmentDate().isBlank()) {
-                organization.setEstablishmentDate(LocalDate.parse(data.getEstablishmentDate()));
-            }
-            if (data.getRegisteredCapital() != null && !data.getRegisteredCapital().isBlank()) {
-                organization.setRegisteredCapital(new BigDecimal(data.getRegisteredCapital()));
-            }
-            organization.setEmployeeCount(data.getEmployeeCount());
-            organization.setBusinessScope(data.getBusinessScope());
-            if (data.getQualifications() != null) {
-                organization.setQualifications(objectMapper.writeValueAsString(data.getQualifications()));
-            }
-            if (data.getProjects() != null) {
-                organization.setProjects(objectMapper.writeValueAsString(data.getProjects()));
-            }
-            organization.setProvince(data.getProvince());
-            organization.setCity(data.getCity());
-            organization.setAddress(data.getAddress());
-            organization.setWebsite(data.getWebsite());
-            organization.setIntroduction(data.getIntroduction());
-
-            log.info("Saving organization member...");
-            organizationMemberRepository.save(organization);
-            log.info("Organization member saved successfully");
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse organization application data", e);
-            throw new BusinessException("Failed to process organization member data");
-        } catch (Exception e) {
-            log.error("Unexpected error creating organization member", e);
-            throw e;
+    private void createOrganizationMember(Member member, MemberApplicationRequest.OrganizationApplicationData data,
+                                          String phone, String email) {
+        OrganizationMember organization = new OrganizationMember();
+        organization.setMember(member);
+        organization.setOrgName(data.getOrgName());
+        organization.setOrgType(OrganizationType.valueOf(data.getOrgType().toUpperCase()));
+        organization.setSocialCreditCode(data.getSocialCreditCode());
+        organization.setLegalRepresentative(data.getLegalRepresentative());
+        organization.setContactPerson(data.getContactPerson());
+        organization.setContactPhone(data.getContactPhone() != null ? data.getContactPhone() : phone);
+        organization.setContactEmail(data.getContactEmail() != null ? data.getContactEmail() : email);
+        if (data.getEstablishmentDate() != null && !data.getEstablishmentDate().isBlank()) {
+            organization.setEstablishmentDate(LocalDate.parse(data.getEstablishmentDate()));
         }
+        if (data.getRegisteredCapital() != null && !data.getRegisteredCapital().isBlank()) {
+            organization.setRegisteredCapital(new BigDecimal(data.getRegisteredCapital()));
+        }
+        organization.setEmployeeCount(data.getEmployeeCount());
+        organization.setBusinessScope(data.getBusinessScope());
+        if (data.getQualifications() != null) {
+            try {
+                organization.setQualifications(objectMapper.writeValueAsString(data.getQualifications()));
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize qualifications", e);
+            }
+        }
+        if (data.getProjects() != null) {
+            try {
+                organization.setProjects(objectMapper.writeValueAsString(data.getProjects()));
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize projects", e);
+            }
+        }
+        organization.setProvince(data.getProvince());
+        organization.setCity(data.getCity());
+        organization.setAddress(data.getAddress());
+        organization.setWebsite(data.getWebsite());
+        organization.setIntroduction(data.getIntroduction());
+
+        organizationMemberRepository.save(organization);
+        log.info("Created organization member detail: memberId={}", member.getId());
     }
 
     private String generateMemberNo(MemberType memberType) {
@@ -351,24 +245,6 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String random = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
         return prefix + date + random;
-    }
-
-    private MemberApplicationResponse toResponse(MemberApplication application) {
-        MemberApplicationResponse response = new MemberApplicationResponse();
-        response.setId(application.getId());
-        response.setMemberType(application.getMemberType());
-        response.setUsername(application.getUsername());
-        response.setEmail(application.getEmail());
-        response.setPhone(application.getPhone());
-        response.setStatus(application.getStatus());
-        response.setApplicationData(application.getApplicationData());
-        response.setReviewedBy(application.getReviewedBy());
-        response.setReviewedAt(application.getReviewedAt());
-        response.setRejectReason(application.getRejectReason());
-        response.setMemberId(application.getMemberId());
-        response.setCreatedTime(application.getCreatedTime());
-        response.setUpdatedTime(application.getUpdatedTime());
-        return response;
     }
 
     private MemberResponse toMemberResponse(Member member) {
