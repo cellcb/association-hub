@@ -2,6 +2,7 @@ import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, New
 import { useState } from 'react';
 import { PageType } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
+import { MembershipApplicationModal } from '../auth/MembershipApplicationModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
@@ -14,6 +15,7 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navItems = [
@@ -193,6 +195,11 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
         onLoginSuccess={() => {
           setLoginModalOpen(false);
         }}
+        onRegisterClick={() => setApplicationModalOpen(true)}
+      />
+      <MembershipApplicationModal
+        isOpen={applicationModalOpen}
+        onClose={() => setApplicationModalOpen(false)}
       />
     </header>
   );
