@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { config } = useSiteConfig();
 
   // Get site name from config with fallback
@@ -68,13 +68,15 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                 {item.label}
               </button>
             ))}
-            <button
-              onClick={onAdminClick}
-              className="ml-4 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              管理后台
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onAdminClick}
+                className="ml-4 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                管理后台
+              </button>
+            )}
             {isAuthenticated && user ? (
               <div className="relative ml-4">
                 <button
@@ -151,16 +153,18 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                 {item.label}
               </button>
             ))}
-            <button
-              onClick={() => {
-                onAdminClick();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3 mt-2 border-t border-gray-100 pt-4"
-            >
-              <Settings className="w-5 h-5" />
-              管理后台
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  onAdminClick();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3 mt-2 border-t border-gray-100 pt-4"
+              >
+                <Settings className="w-5 h-5" />
+                管理后台
+              </button>
+            )}
             {isAuthenticated && user ? (
               <div className="mt-2 border-t border-gray-100 pt-4">
                 <button

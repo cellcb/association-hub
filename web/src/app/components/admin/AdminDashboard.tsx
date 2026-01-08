@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Calendar, 
-  Package, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Calendar,
+  Package,
   Settings,
   ArrowLeft,
   UserCheck,
@@ -13,8 +13,10 @@ import {
   DollarSign,
   Award,
   Building2,
-  Newspaper
+  Newspaper,
+  ShieldX
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { MemberManagement } from './MemberManagement';
 import { ExpertManagement } from './ExpertManagement';
 import { ProjectManagement } from './ProjectManagement';
@@ -31,7 +33,27 @@ interface AdminDashboardProps {
 type AdminPage = 'dashboard' | 'members' | 'experts' | 'projects' | 'news' | 'activities' | 'products' | 'configs' | 'settings';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
+  const { isAdmin } = useAuth();
   const [currentPage, setCurrentPage] = useState<AdminPage>('dashboard');
+
+  // 权限检查：非管理员显示无权限提示
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <ShieldX className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">无权限访问</h2>
+          <p className="text-gray-500 mb-6">您没有管理后台的访问权限</p>
+          <button
+            onClick={onBack}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            返回首页
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const menuItems = [
     { id: 'dashboard' as AdminPage, label: '数据概览', icon: LayoutDashboard },

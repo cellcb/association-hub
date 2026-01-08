@@ -5,6 +5,7 @@ import * as api from '@/lib/api';
 interface AuthContextType {
   user: UserInfo | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
+    isAdmin: user?.roles?.includes('SUPER_ADMIN') ?? false,
     isLoading,
     login,
     logout,

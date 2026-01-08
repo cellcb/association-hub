@@ -67,6 +67,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers(securityWhitelist.getPermitAllPatterns().toArray(new String[0])).permitAll()
+                // Admin API requires SUPER_ADMIN role
+                .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

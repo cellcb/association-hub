@@ -26,11 +26,19 @@ public class UserPrincipal implements UserDetails {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
             return List.of();
         }
-        
-        return user.getRoles().stream()
+
+        // 收集权限
+        var authorities = user.getRoles().stream()
                 .flatMap(role -> role.getPermissions().stream())
                 .map(permission -> new SimpleGrantedAuthority(permission.getCode()))
                 .collect(Collectors.toSet());
+
+        // 添加角色（以 ROLE_ 前缀，符合 Spring Security 约定）
+        user.getRoles().forEach(role ->
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()))
+        );
+
+        return authorities;
     }
     
     @Override
