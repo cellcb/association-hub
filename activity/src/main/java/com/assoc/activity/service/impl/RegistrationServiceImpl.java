@@ -55,6 +55,8 @@ public class RegistrationServiceImpl implements RegistrationService {
         registration.setCompany(request.getCompany());
         registration.setPosition(request.getPosition());
         registration.setMemberType(request.getMemberType());
+        registration.setMemberId(request.getMemberId());
+        registration.setIsMemberRegistration(request.getMemberId() != null);
         registration.setSpecialRequirements(request.getSpecialRequirements());
         registration.setStatus(RegistrationStatus.PENDING);
 
@@ -137,6 +139,8 @@ public class RegistrationServiceImpl implements RegistrationService {
         response.setCompany(registration.getCompany());
         response.setPosition(registration.getPosition());
         response.setMemberType(registration.getMemberType());
+        response.setMemberId(registration.getMemberId());
+        response.setIsMemberRegistration(registration.getIsMemberRegistration());
         response.setSpecialRequirements(registration.getSpecialRequirements());
         response.setStatus(registration.getStatus());
         response.setStatusName(getStatusName(registration.getStatus()));

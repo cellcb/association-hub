@@ -15,5 +15,6 @@ public class RegistrationRequest {
     private String company;
     private String position;
     private String memberType;
+    private Long memberId;
     private String specialRequirements;
 }

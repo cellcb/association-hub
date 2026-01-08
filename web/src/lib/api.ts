@@ -1,5 +1,5 @@
 import type { Result, LoginRequest, LoginResponse, MemberApplicationRequest } from '@/types/auth';
-import type { MemberResponse } from '@/types/member';
+import type { MemberResponse, MemberRegistrationProfile } from '@/types/member';
 
 const API_BASE = '/api';
 
@@ -708,6 +708,31 @@ export async function checkActivityRegistration(
   phone: string
 ): Promise<Result<boolean>> {
   return request(`/activities/${activityId}/check-registration?phone=${encodeURIComponent(phone)}`);
+}
+
+/**
+ * 用户档案响应（包含会员信息）
+ */
+interface UserProfileResponse {
+  id: number;
+  username: string;
+  email: string;
+  phone: string;
+  realName: string;
+  memberProfile?: MemberRegistrationProfile;
+}
+
+/**
+ * 获取当前登录用户的会员报名信息（用于活动报名自动填充）
+ * 通过 /api/iam/users/me 接口获取用户档案，提取会员信息
+ * 如果未登录或非活跃会员，返回 null
+ */
+export async function getMyMemberRegistrationProfile(): Promise<Result<MemberRegistrationProfile | null>> {
+  const res = await request<UserProfileResponse>('/iam/users/me');
+  if (res.success && res.data?.memberProfile) {
+    return { ...res, data: res.data.memberProfile };
+  }
+  return { ...res, data: null };
 }
 
 // ========== Public Product API ==========

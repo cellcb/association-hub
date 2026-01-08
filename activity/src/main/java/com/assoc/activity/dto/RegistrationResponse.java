@@ -17,6 +17,8 @@ public class RegistrationResponse {
     private String company;
     private String position;
     private String memberType;
+    private Long memberId;
+    private Boolean isMemberRegistration;
     private String specialRequirements;
     private RegistrationStatus status;
     private String statusName;

@@ -36,6 +36,12 @@ public class ActivityRegistration extends AuditableEntity {
     @Column(name = "member_type")
     private String memberType;
 
+    @Column(name = "member_id")
+    private Long memberId;
+
+    @Column(name = "is_member_registration")
+    private Boolean isMemberRegistration = false;
+
     @Column(name = "special_requirements", columnDefinition = "TEXT")
     private String specialRequirements;
 

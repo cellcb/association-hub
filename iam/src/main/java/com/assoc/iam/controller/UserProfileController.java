@@ -1,6 +1,7 @@
 package com.assoc.iam.controller;
 
 import com.assoc.common.Result;
+import com.assoc.common.profile.MemberProfileProvider;
 import com.assoc.iam.dto.*;
 import com.assoc.iam.security.UserPrincipal;
 import com.assoc.iam.service.UserService;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +26,11 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "用户个人档案", description = "用户自服务接口，用于管理个人信息（原路径：/api/profile）")
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserProfileController {
-    
+
     private final UserService userService;
+
+    @Autowired(required = false)
+    private MemberProfileProvider memberProfileProvider;
     
     @Operation(
         summary = "获取个人信息",
@@ -196,7 +201,25 @@ public class UserProfileController {
                     .map(role -> role.getName())
                     .toList());
         }
-        
+
+        // 获取会员档案信息（如果有）
+        if (memberProfileProvider != null) {
+            memberProfileProvider.getMemberProfile(userResponse.getId())
+                    .ifPresent(memberData -> {
+                        UserProfileResponse.MemberProfile memberProfile = new UserProfileResponse.MemberProfile();
+                        memberProfile.setMemberId(memberData.memberId());
+                        memberProfile.setMemberNo(memberData.memberNo());
+                        memberProfile.setMemberType(memberData.memberType());
+                        memberProfile.setMemberStatus(memberData.memberStatus());
+                        memberProfile.setName(memberData.name());
+                        memberProfile.setPhone(memberData.phone());
+                        memberProfile.setEmail(memberData.email());
+                        memberProfile.setCompany(memberData.company());
+                        memberProfile.setPosition(memberData.position());
+                        profile.setMemberProfile(memberProfile);
+                    });
+        }
+
         return profile;
     }
     

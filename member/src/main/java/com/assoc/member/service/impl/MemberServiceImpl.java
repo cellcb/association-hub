@@ -14,7 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -243,6 +243,45 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public long countByType(MemberType memberType) {
         return memberRepository.countByMemberType(memberType);
+    }
+
+    @Override
+    public Optional<MemberRegistrationProfileResponse> getMemberRegistrationProfile(Long userId) {
+        if (userId == null) {
+            return Optional.empty();
+        }
+
+        return memberRepository.findByUserId(userId)
+                .filter(Member::isActive)
+                .map(member -> {
+                    MemberRegistrationProfileResponse response = new MemberRegistrationProfileResponse();
+                    response.setMemberId(member.getId());
+                    response.setMemberNo(member.getMemberNo());
+                    response.setMemberType(member.getMemberType().name());
+                    response.setMemberStatus(member.getStatus().name());
+
+                    if (member.getMemberType() == MemberType.INDIVIDUAL) {
+                        individualMemberRepository.findByMember_Id(member.getId())
+                                .ifPresent(individual -> {
+                                    response.setName(individual.getName());
+                                    response.setPhone(individual.getPhone());
+                                    response.setEmail(individual.getEmail());
+                                    response.setCompany(individual.getOrganization());
+                                    response.setPosition(individual.getPosition());
+                                });
+                    } else {
+                        organizationMemberRepository.findByMember_Id(member.getId())
+                                .ifPresent(organization -> {
+                                    response.setName(organization.getContactPerson());
+                                    response.setPhone(organization.getContactPhone());
+                                    response.setEmail(organization.getContactEmail());
+                                    response.setCompany(organization.getOrgName());
+                                    response.setPosition(null);
+                                });
+                    }
+
+                    return response;
+                });
     }
 
     private MemberResponse toResponse(Member member) {

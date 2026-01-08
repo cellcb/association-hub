@@ -142,6 +142,7 @@ export interface RegistrationRequest {
   company?: string;
   position?: string;
   memberType?: string;
+  memberId?: number;
   specialRequirements?: string;
 }
 
@@ -157,6 +158,8 @@ export interface RegistrationResponse {
   company: string | null;
   position: string | null;
   memberType: string | null;
+  memberId: number | null;
+  isMemberRegistration: boolean | null;
   specialRequirements: string | null;
   status: RegistrationStatus;
   statusName: string;

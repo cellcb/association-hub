@@ -1,6 +1,6 @@
-import { Calendar, MapPin, Users, Clock, Tag, Filter, ExternalLink, X, User, Mail, Phone, Building2, FileText, CheckCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Tag, Filter, ExternalLink, X, User, Mail, Phone, Building2, FileText, CheckCircle, Loader2, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { getPublicActivities, getPublicActivityById, registerActivity } from '@/lib/api';
+import { getPublicActivities, getPublicActivityById, registerActivity, getMyMemberRegistrationProfile } from '@/lib/api';
 import type {
   ActivityListResponse,
   ActivityResponse,
@@ -8,6 +8,7 @@ import type {
   ActivityStatus,
   RegistrationRequest,
 } from '@/types/activity';
+import type { MemberRegistrationProfile } from '@/types/member';
 import {
   activityTypeLabels,
   activityStatusLabels,
@@ -56,8 +57,13 @@ export function ActivityCenter() {
     company: '',
     position: '',
     memberType: 'member',
+    memberId: null as number | null,
     specialRequirements: ''
   });
+
+  // 会员信息状态
+  const [memberProfile, setMemberProfile] = useState<MemberRegistrationProfile | null>(null);
+  const [loadingMemberProfile, setLoadingMemberProfile] = useState(false);
 
   const types = ['全部活动', '会议', '培训', '研讨会', '展览', '竞赛', '其他'];
 
@@ -174,9 +180,35 @@ export function ActivityCenter() {
   };
 
   // 打开报名表单
-  const handleRegistration = (activity: ActivityListResponse) => {
+  const handleRegistration = async (activity: ActivityListResponse) => {
     setSelectedActivity(activity);
     setShowRegistrationForm(true);
+    setLoadingMemberProfile(true);
+
+    try {
+      const res = await getMyMemberRegistrationProfile();
+      if (res.success && res.data) {
+        setMemberProfile(res.data);
+        // 自动填充表单
+        setFormData({
+          name: res.data.name || '',
+          phone: res.data.phone || '',
+          email: res.data.email || '',
+          company: res.data.company || '',
+          position: res.data.position || '',
+          memberType: 'member',
+          memberId: res.data.memberId,
+          specialRequirements: ''
+        });
+      } else {
+        setMemberProfile(null);
+      }
+    } catch (error) {
+      console.error('Failed to load member profile:', error);
+      setMemberProfile(null);
+    } finally {
+      setLoadingMemberProfile(false);
+    }
   };
 
   // 表单变化处理
@@ -202,6 +234,7 @@ export function ActivityCenter() {
         company: formData.company || undefined,
         position: formData.position || undefined,
         memberType: formData.memberType,
+        memberId: formData.memberId || undefined,
         specialRequirements: formData.specialRequirements || undefined,
       };
 
@@ -225,6 +258,7 @@ export function ActivityCenter() {
   const closeRegistrationForm = () => {
     setShowRegistrationForm(false);
     setRegistrationSuccess(false);
+    setMemberProfile(null);
     setFormData({
       name: '',
       phone: '',
@@ -232,6 +266,7 @@ export function ActivityCenter() {
       company: '',
       position: '',
       memberType: 'member',
+      memberId: null,
       specialRequirements: ''
     });
   };
@@ -474,124 +509,274 @@ export function ActivityCenter() {
 
         {/* Registration Form Modal */}
         {showRegistrationForm && selectedActivity && (
-          <div className="fixed inset-0 z-50 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl text-gray-900">报名活动</h2>
-                <button className="text-gray-500 hover:text-gray-700" onClick={closeRegistrationForm}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="relative p-6 border-b border-gray-100">
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-7 h-7 text-white" />
+                  </div>
+                  <h2 className="text-xl text-gray-900 mb-1">活动报名</h2>
+                  <p className="text-sm text-gray-500">填写报名信息，参与精彩活动</p>
+                </div>
+                <button
+                  className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={closeRegistrationForm}
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-medium text-gray-900">{selectedActivity.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {formatDate(selectedActivity.date)} {formatTime(selectedActivity.time)}
-                </p>
+              {/* Activity Info Banner */}
+              <div className="mx-6 mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                    <span className="text-lg font-medium">{getDayFromDate(selectedActivity.date)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 truncate">{selectedActivity.title}</h3>
+                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatTime(selectedActivity.time)}
+                      </span>
+                      {selectedActivity.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {selectedActivity.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {registrationSuccess ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" />
-                  <p className="text-xl text-gray-900 mb-2">报名成功！</p>
-                  <p className="text-gray-600">感谢您的报名，我们将尽快与您联系。</p>
-                  <button
-                    onClick={closeRegistrationForm}
-                    className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    关闭
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">姓名 *</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        required
-                      />
+              <div className="p-6">
+                {registrationSuccess ? (
+                  <div className="text-center py-8">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle className="w-10 h-10 text-green-500" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">电话 *</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">邮箱</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">公司</label>
-                      <input
-                        type="text"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">职位</label>
-                      <input
-                        type="text"
-                        name="position"
-                        value={formData.position}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">会员类型</label>
-                      <select
-                        name="memberType"
-                        value={formData.memberType}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      >
-                        <option value="member">会员</option>
-                        <option value="non-member">非会员</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">特殊要求</label>
-                      <textarea
-                        name="specialRequirements"
-                        value={formData.specialRequirements}
-                        onChange={handleFormChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-6">
+                    <p className="text-xl text-gray-900 mb-2">报名成功！</p>
+                    <p className="text-gray-600 mb-8">感谢您的报名，我们将尽快与您联系。</p>
                     <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onClick={closeRegistrationForm}
+                      className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
                     >
-                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {submitting ? '提交中...' : '提交报名'}
+                      关闭
                     </button>
                   </div>
-                </form>
-              )}
+                ) : loadingMemberProfile ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                    <span className="text-gray-600">正在加载会员信息...</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* 会员自动填充提示 */}
+                    {memberProfile && (
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <UserCheck className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-800">已自动填充会员信息</p>
+                          <p className="text-xs text-green-600">会员号：{memberProfile.memberNo}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 基本信息分组 */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <User className="w-4 h-4 text-blue-600" />
+                        <span>基本信息</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1.5">
+                            姓名 <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="name"
+                              value={formData.name}
+                              onChange={handleFormChange}
+                              placeholder="请输入姓名"
+                              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1.5">
+                            电话 <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleFormChange}
+                              placeholder="请输入电话"
+                              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1.5">邮箱</label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleFormChange}
+                            placeholder="请输入邮箱"
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 工作信息分组 */}
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <Building2 className="w-4 h-4 text-blue-600" />
+                        <span>工作信息</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1.5">公司/单位</label>
+                          <div className="relative">
+                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="company"
+                              value={formData.company}
+                              onChange={handleFormChange}
+                              placeholder="请输入公司/单位"
+                              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1.5">职位</label>
+                          <div className="relative">
+                            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="position"
+                              value={formData.position}
+                              onChange={handleFormChange}
+                              placeholder="请输入职位"
+                              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 报名选项分组 */}
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <Tag className="w-4 h-4 text-blue-600" />
+                        <span>报名选项</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1.5">参会类型</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label
+                            className={`flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                              formData.memberType === 'member'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="memberType"
+                              value="member"
+                              checked={formData.memberType === 'member'}
+                              onChange={handleFormChange}
+                              className="sr-only"
+                            />
+                            <UserCheck className={`w-4 h-4 ${formData.memberType === 'member' ? 'text-blue-600' : 'text-gray-400'}`} />
+                            <span className="text-sm font-medium">会员</span>
+                            {selectedActivity.fee && selectedActivity.fee !== '0' && (
+                              <span className="text-xs text-green-600 font-medium">免费</span>
+                            )}
+                          </label>
+                          <label
+                            className={`flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                              formData.memberType === 'non-member'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="memberType"
+                              value="non-member"
+                              checked={formData.memberType === 'non-member'}
+                              onChange={handleFormChange}
+                              className="sr-only"
+                            />
+                            <Users className={`w-4 h-4 ${formData.memberType === 'non-member' ? 'text-blue-600' : 'text-gray-400'}`} />
+                            <span className="text-sm font-medium">非会员</span>
+                            {selectedActivity.fee && selectedActivity.fee !== '0' && (
+                              <span className="text-xs text-orange-600 font-medium">¥{parseFloat(selectedActivity.fee)}</span>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1.5">特殊要求（可选）</label>
+                        <textarea
+                          name="specialRequirements"
+                          value={formData.specialRequirements}
+                          onChange={handleFormChange}
+                          placeholder="如有特殊需求，请在此说明..."
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            提交中...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            确认报名
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         )}

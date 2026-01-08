@@ -167,3 +167,16 @@ export const organizationTypeLabels: Record<OrganizationType, string> = {
   MANAGEMENT: '管理单位',
   DESIGN: '设计单位',
 };
+
+// 会员报名信息 (用于活动报名自动填充)
+export interface MemberRegistrationProfile {
+  memberId: number;
+  memberNo: string;
+  memberType: MemberType;
+  memberStatus: MemberStatus;
+  name: string;
+  phone: string;
+  email: string;
+  company: string;
+  position: string;
+}

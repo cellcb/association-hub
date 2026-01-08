@@ -6,6 +6,8 @@ import com.assoc.member.entity.MemberType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Optional;
+
 /**
  * Member service interface
  */
@@ -121,4 +123,11 @@ public interface MemberService {
      * @return Count
      */
     long countByType(MemberType memberType);
+
+    /**
+     * Get member registration profile for activity registration auto-fill
+     * @param userId User ID from iam_user
+     * @return Optional member profile for registration, empty if not a member or not active
+     */
+    Optional<MemberRegistrationProfileResponse> getMemberRegistrationProfile(Long userId);
 }

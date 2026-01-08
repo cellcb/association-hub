@@ -48,6 +48,7 @@ public class SecurityWhitelist {
                     Stream.of(
                             "/actuator/**",
                             "/api/iam/menus/user-menus",
+                            "/api/iam/users/me/**",  // 用户个人档案（自服务接口）
                             "/api/kb/documents/search/external",
                             "/api/kb/documents/search/rag",
                             "/api/kb/documents/search/rag/stream"

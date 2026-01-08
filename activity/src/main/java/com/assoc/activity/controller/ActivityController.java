@@ -8,6 +8,7 @@ import com.assoc.activity.entity.ActivityType;
 import com.assoc.activity.service.ActivityService;
 import com.assoc.activity.service.RegistrationService;
 import com.assoc.common.Result;
+import com.assoc.common.context.RequestContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,7 @@ public class ActivityController {
 
     private final ActivityService activityService;
     private final RegistrationService registrationService;
+    private final RequestContext requestContext;
 
     @Operation(summary = "获取活动列表")
     @GetMapping
@@ -57,8 +59,8 @@ public class ActivityController {
     public Result<RegistrationResponse> register(
             @PathVariable Long id,
             @Valid @RequestBody RegistrationRequest request) {
-        // TODO: get userId from security context if logged in
-        return Result.success(registrationService.register(id, request, null));
+        Long userId = requestContext.currentUserId().orElse(null);
+        return Result.success(registrationService.register(id, request, userId));
     }
 
     @Operation(summary = "查询报名状态")
