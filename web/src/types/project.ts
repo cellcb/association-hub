@@ -53,10 +53,16 @@ export interface ProjectListResponse {
   location: string;
   completionDate: string | null;
   owner: string;
+  designer: string | null;
+  contractor: string | null;
+  description: string | null;
   views: number;
   status: ProjectStatus;
   coverImage: string | null;
   images: string | null;
+  // JSON string fields for list display
+  highlights: string | null;
+  projectAwards: string | null;
 }
 
 // 项目详情响应

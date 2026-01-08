@@ -14,8 +14,14 @@ public class ProjectListResponse {
     private String location;
     private LocalDate completionDate;
     private String owner;
+    private String designer;
+    private String contractor;
+    private String description;
     private Integer views;
     private Integer status;
     private String coverImage;
     private String images;
+    // JSON string fields for list display
+    private String highlights;
+    private String projectAwards;
 }

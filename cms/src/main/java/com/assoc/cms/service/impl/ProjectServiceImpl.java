@@ -135,10 +135,15 @@ public class ProjectServiceImpl implements ProjectService {
         response.setLocation(project.getLocation());
         response.setCompletionDate(project.getCompletionDate());
         response.setOwner(project.getOwner());
+        response.setDesigner(project.getDesigner());
+        response.setContractor(project.getContractor());
+        response.setDescription(project.getDescription());
         response.setViews(project.getViews());
         response.setStatus(project.getStatus());
         response.setCoverImage(project.getCoverImage());
         response.setImages(project.getImages());
+        response.setHighlights(project.getHighlights());
+        response.setProjectAwards(project.getProjectAwards());
         return response;
     }
 

@@ -134,6 +134,17 @@ export interface ActivityRequest {
   agenda?: string;
 }
 
+// 报名请求
+export interface RegistrationRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  company?: string;
+  position?: string;
+  memberType?: string;
+  specialRequirements?: string;
+}
+
 // 报名响应
 export interface RegistrationResponse {
   id: number;

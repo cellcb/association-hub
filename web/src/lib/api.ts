@@ -570,6 +570,7 @@ import type {
   ActivityRequest,
   ActivityStatus,
   ActivityType,
+  RegistrationRequest,
   RegistrationResponse,
   RegistrationStatus,
 } from '@/types/activity';
@@ -659,6 +660,54 @@ export async function updateRegistrationStatus(regId: number, status: Registrati
  */
 export async function cancelRegistration(regId: number): Promise<Result<void>> {
   return request(`/admin/activities/registrations/${regId}`, { method: 'DELETE' });
+}
+
+// ========== Public Activity API ==========
+
+/**
+ * 获取公开活动列表
+ */
+export async function getPublicActivities(
+  params?: PageParams & { keyword?: string; type?: ActivityType }
+): Promise<Result<Page<ActivityListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  if (params?.type) searchParams.append('type', params.type);
+  const query = searchParams.toString();
+  return request(`/activities${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取公开活动详情
+ */
+export async function getPublicActivityById(id: number): Promise<Result<ActivityResponse>> {
+  return request(`/activities/${id}`);
+}
+
+/**
+ * 活动报名
+ */
+export async function registerActivity(
+  activityId: number,
+  data: RegistrationRequest
+): Promise<Result<RegistrationResponse>> {
+  return request(`/activities/${activityId}/register`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 检查是否已报名
+ */
+export async function checkActivityRegistration(
+  activityId: number,
+  phone: string
+): Promise<Result<boolean>> {
+  return request(`/activities/${activityId}/check-registration?phone=${encodeURIComponent(phone)}`);
 }
 
 // ========== Admin Product API ==========
@@ -876,5 +925,43 @@ export async function getPublicExperts(params?: {
  */
 export async function getPublicExpertById(id: number): Promise<Result<ExpertResponse>> {
   const response = await fetch(`${API_BASE}/experts/${id}`);
+  return response.json();
+}
+
+// ========== Public Project API (无需认证) ==========
+
+/**
+ * 获取公开项目列表
+ */
+export async function getPublicProjects(params?: {
+  page?: number;
+  size?: number;
+  keyword?: string;
+  category?: ProjectCategory;
+}): Promise<Result<Page<ProjectListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  if (params?.category) searchParams.append('category', params.category);
+  const query = searchParams.toString();
+
+  const response = await fetch(`${API_BASE}/projects${query ? `?${query}` : ''}`);
+  return response.json();
+}
+
+/**
+ * 获取公开项目详情
+ */
+export async function getPublicProjectById(id: number): Promise<Result<ProjectResponse>> {
+  const response = await fetch(`${API_BASE}/projects/${id}`);
+  return response.json();
+}
+
+/**
+ * 增加项目浏览量
+ */
+export async function incrementProjectViews(id: number): Promise<Result<void>> {
+  const response = await fetch(`${API_BASE}/projects/${id}/view`, { method: 'POST' });
   return response.json();
 }
