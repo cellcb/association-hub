@@ -846,3 +846,35 @@ export async function likeNews(id: number): Promise<Result<void>> {
   const response = await fetch(`${API_BASE}/news/${id}/like`, { method: 'POST' });
   return response.json();
 }
+
+// ========== Public Expert API (无需认证) ==========
+
+/**
+ * 获取公开专家列表
+ */
+export async function getPublicExperts(params?: {
+  page?: number;
+  size?: number;
+  keyword?: string;
+  fieldId?: number;
+  fieldCode?: string;
+}): Promise<Result<Page<ExpertListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  if (params?.fieldId !== undefined) searchParams.append('fieldId', params.fieldId.toString());
+  if (params?.fieldCode) searchParams.append('fieldCode', params.fieldCode);
+  const query = searchParams.toString();
+
+  const response = await fetch(`${API_BASE}/experts${query ? `?${query}` : ''}`);
+  return response.json();
+}
+
+/**
+ * 获取公开专家详情
+ */
+export async function getPublicExpertById(id: number): Promise<Result<ExpertResponse>> {
+  const response = await fetch(`${API_BASE}/experts/${id}`);
+  return response.json();
+}

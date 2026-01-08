@@ -145,12 +145,25 @@ public class ExpertServiceImpl implements ExpertService {
         response.setLocation(expert.getLocation());
         response.setAvatar(expert.getAvatar());
         response.setStatus(expert.getStatus());
+        response.setAchievements(expert.getAchievements());
+        response.setEmail(expert.getEmail());
+        response.setPhone(maskPhone(expert.getPhone()));
         if (expert.getExpertiseFields() != null) {
             response.setExpertiseFields(expert.getExpertiseFields().stream()
                     .map(this::toFieldResponse)
                     .collect(Collectors.toList()));
         }
         return response;
+    }
+
+    /**
+     * 手机号脱敏：138****1234
+     */
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 7) {
+            return phone;
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
     private ExpertResponse toResponse(Expert expert) {

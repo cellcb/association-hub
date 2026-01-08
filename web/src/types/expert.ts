@@ -9,7 +9,7 @@ export interface ExpertiseFieldResponse {
   status: number;
 }
 
-// 专家列表响应（简化版）
+// 专家列表响应（用于卡片展示）
 export interface ExpertListResponse {
   id: number;
   name: string;
@@ -19,13 +19,14 @@ export interface ExpertListResponse {
   avatar: string;
   status: number;
   expertiseFields: ExpertiseFieldResponse[];
-}
-
-// 专家详情响应
-export interface ExpertResponse extends ExpertListResponse {
+  // 新增字段用于卡片展示
   achievements: string;
   email: string;
-  phone: string;
+  phone: string; // 脱敏后的手机号，如 138****1234
+}
+
+// 专家详情响应（继承列表字段，添加详情字段）
+export interface ExpertResponse extends ExpertListResponse {
   bio: string;
   education: string;
   experience: string;
