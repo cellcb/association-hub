@@ -459,6 +459,13 @@ export function ActivityManagement() {
                   查看详情
                 </button>
                 <button
+                  onClick={() => handleViewRegistrations(activity)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-1"
+                >
+                  <Users className="w-4 h-4" />
+                  {activity.registeredCount} 人报名
+                </button>
+                <button
                   onClick={() => handleEdit(activity)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
