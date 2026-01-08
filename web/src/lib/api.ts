@@ -796,3 +796,53 @@ export async function updateConfigValue(id: number, value: string): Promise<Resu
     },
   });
 }
+
+// ========== Public News API (无需认证) ==========
+
+/**
+ * 获取公开新闻列表
+ */
+export async function getPublicNewsList(params?: {
+  page?: number;
+  size?: number;
+  categoryId?: number;
+  keyword?: string;
+  tagId?: number;
+  featured?: boolean;
+}): Promise<Result<Page<NewsListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  if (params?.tagId !== undefined) searchParams.append('tagId', params.tagId.toString());
+  if (params?.featured !== undefined) searchParams.append('featured', params.featured.toString());
+  const query = searchParams.toString();
+
+  const response = await fetch(`${API_BASE}/news${query ? `?${query}` : ''}`);
+  return response.json();
+}
+
+/**
+ * 获取公开新闻详情
+ */
+export async function getPublicNewsById(id: number): Promise<Result<NewsResponse>> {
+  const response = await fetch(`${API_BASE}/news/${id}`);
+  return response.json();
+}
+
+/**
+ * 增加新闻浏览量
+ */
+export async function incrementNewsViews(id: number): Promise<Result<void>> {
+  const response = await fetch(`${API_BASE}/news/${id}/view`, { method: 'POST' });
+  return response.json();
+}
+
+/**
+ * 点赞新闻
+ */
+export async function likeNews(id: number): Promise<Result<void>> {
+  const response = await fetch(`${API_BASE}/news/${id}/like`, { method: 'POST' });
+  return response.json();
+}

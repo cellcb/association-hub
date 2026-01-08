@@ -56,9 +56,9 @@ public class News extends AuditableEntity {
     private String author;
 
     /**
-     * Cover image URL
+     * Cover image (URL or Base64)
      */
-    @Column(name = "cover_image", length = 500)
+    @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
 
     /**
