@@ -11,6 +11,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { SiteConfigProvider } from '@/contexts/SiteConfigContext';
 
 export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'admin';
 
@@ -65,7 +66,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SiteConfigProvider>
+        <AppContent />
+      </SiteConfigProvider>
     </AuthProvider>
   );
 }

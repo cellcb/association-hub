@@ -727,3 +727,72 @@ export async function deleteProduct(id: number): Promise<Result<void>> {
 export async function getProductCategories(): Promise<Result<ProductCategoryResponse[]>> {
   return request('/products/categories');
 }
+
+// ========== System Config API ==========
+
+import type { ConfigResponse, ConfigUpdateRequest, SiteConfig } from '@/types/config';
+
+/**
+ * 获取网站配置（公开API，无需认证）
+ */
+export async function getSiteConfig(): Promise<Result<SiteConfig>> {
+  const response = await fetch(`${API_BASE}/public/configs/site`);
+  return response.json();
+}
+
+/**
+ * 获取所有配置（后台管理）
+ */
+export async function getConfigs(
+  params?: PageParams
+): Promise<Result<Page<ConfigResponse>>> {
+  const query = buildPageParams(params);
+  return request(`/admin/configs${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取配置详情
+ */
+export async function getConfigById(id: number): Promise<Result<ConfigResponse>> {
+  return request(`/admin/configs/${id}`);
+}
+
+/**
+ * 根据配置键获取配置
+ */
+export async function getConfigByKey(configKey: string): Promise<Result<ConfigResponse>> {
+  return request(`/admin/configs/key/${encodeURIComponent(configKey)}`);
+}
+
+/**
+ * 按分类获取配置列表
+ */
+export async function getConfigsByCategory(category: string): Promise<Result<ConfigResponse[]>> {
+  return request(`/admin/configs/category/${encodeURIComponent(category)}`);
+}
+
+/**
+ * 更新配置
+ */
+export async function updateConfig(
+  id: number,
+  data: ConfigUpdateRequest
+): Promise<Result<ConfigResponse>> {
+  return request(`/admin/configs/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新配置值
+ */
+export async function updateConfigValue(id: number, value: string): Promise<Result<void>> {
+  return request(`/admin/configs/${id}/value`, {
+    method: 'PUT',
+    body: value,
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+  });
+}

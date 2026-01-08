@@ -26,6 +26,7 @@
         <module>cms</module>
         <module>activity</module>
         <module>product</module>
+        <module>system</module>
         <module>boot</module>
     </modules>
 

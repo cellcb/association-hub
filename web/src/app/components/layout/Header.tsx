@@ -4,6 +4,7 @@ import { PageType } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
 import { MembershipApplicationModal } from '../auth/MembershipApplicationModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSiteConfig } from '@/contexts/SiteConfigContext';
 
 interface HeaderProps {
   currentPage: PageType;
@@ -13,6 +14,12 @@ interface HeaderProps {
 
 export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
+  const { config } = useSiteConfig();
+
+  // Get site name from config with fallback
+  const siteName = config?.site_name || '广东省土木建筑学会';
+  const siteSlogan = config?.site_slogan || '给水排水专业委员会';
+  const siteNameShort = config?.site_name_short || '给排水专委会';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [applicationModalOpen, setApplicationModalOpen] = useState(false);
@@ -37,11 +44,11 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
               <Settings className="w-6 h-6 text-white" />
             </div>
             <div className="hidden lg:block">
-              <div className="text-sm text-gray-900">广东省土木建筑学会</div>
-              <div className="text-xs text-gray-600">给水排水专业委员会</div>
+              <div className="text-sm text-gray-900">{siteName}</div>
+              <div className="text-xs text-gray-600">{siteSlogan}</div>
             </div>
             <div className="lg:hidden">
-              <div className="text-sm text-gray-900">给排水专委会</div>
+              <div className="text-sm text-gray-900">{siteNameShort}</div>
             </div>
           </div>
 

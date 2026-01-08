@@ -22,12 +22,13 @@ import { NewsManagement } from './NewsManagement';
 import { ActivityManagement } from './ActivityManagement';
 import { ProductManagement } from './ProductManagement';
 import { SystemSettings } from './SystemSettings';
+import { ConfigManagement } from './ConfigManagement';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminPage = 'dashboard' | 'members' | 'experts' | 'projects' | 'news' | 'activities' | 'products' | 'settings';
+type AdminPage = 'dashboard' | 'members' | 'experts' | 'projects' | 'news' | 'activities' | 'products' | 'configs' | 'settings';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [currentPage, setCurrentPage] = useState<AdminPage>('dashboard');
@@ -40,6 +41,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'news' as AdminPage, label: '新闻管理', icon: Newspaper },
     { id: 'activities' as AdminPage, label: '活动管理', icon: Calendar },
     { id: 'products' as AdminPage, label: '产品管理', icon: Package },
+    { id: 'configs' as AdminPage, label: '网站配置', icon: Settings },
     { id: 'settings' as AdminPage, label: '系统设置', icon: Settings },
   ];
 
@@ -168,6 +170,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <ActivityManagement />;
       case 'products':
         return <ProductManagement />;
+      case 'configs':
+        return <ConfigManagement />;
       case 'settings':
         return <SystemSettings />;
       default:
