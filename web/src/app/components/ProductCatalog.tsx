@@ -1,292 +1,428 @@
-import { Search, Package, Tag, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Package, Tag, Building2, Phone, Mail, ExternalLink, X, Eye, ChevronLeft, ChevronRight, Loader2, Globe, User, Bookmark } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ImageWithFallback } from './figma/ImageWithFallback';
+import { getPublicProducts, getPublicProductById, getProductCategories, incrementProductViews } from '@/lib/api';
+import type { ProductListResponse, ProductResponse, ProductCategoryResponse } from '@/types/product';
 
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  manufacturer: string;
-  description: string;
-  features: string[];
-  application: string;
-  certifications: string[];
-  contact: {
-    phone: string;
-    email: string;
-  };
-}
+// JSON 字段解析工具函数
+const parseJsonArray = (jsonStr: string | null): string[] => {
+  if (!jsonStr) return [];
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return [];
+  }
+};
+
+// 获取第一张图片
+const getFirstImage = (imagesJson: string | null): string | null => {
+  const images = parseJsonArray(imagesJson);
+  return images.length > 0 ? images[0] : null;
+};
 
 export function ProductCatalog() {
+  // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('全部分类');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
-  const categories = [
-    '全部分类',
-    '水泵设备',
-    '阀门管件',
-    '管道系统',
-    '水处理设备',
-    '二次供水',
-    '智能控制',
-    '检测仪器'
-  ];
+  // 数据状态
+  const [products, setProducts] = useState<ProductListResponse[]>([]);
+  const [categories, setCategories] = useState<ProductCategoryResponse[]>([]);
+  const [productDetail, setProductDetail] = useState<ProductResponse | null>(null);
 
-  const products: Product[] = [
-    {
-      id: 1,
-      name: '立式多级离心泵 CDL系列',
-      category: '水泵设备',
-      manufacturer: '某某泵业股份有限公司',
-      description: '高效节能立式多级离心泵，适用于建筑二次供水、消防供水、工业循环用水等场合。采用不锈钢材质，运行稳定可靠。',
-      features: [
-        '304/316不锈钢材质',
-        '高效节能，能效等级2级',
-        '低噪音设计≤65dB',
-        '变频控制，恒压供水',
-        '维护简便，寿命长',
-      ],
-      application: '适用于高���建筑供水、消防系统、工业用水等',
-      certifications: ['中国节能产品认证', '3C消防认证', 'ISO9001质量管理体系'],
-      contact: {
-        phone: '400-123-4567',
-        email: 'pump@example.com',
-      },
-    },
-    {
-      id: 2,
-      name: '智能电动调节阀 ZDL系列',
-      category: '阀门管件',
-      manufacturer: '某某阀门集团有限公司',
-      description: '带4-20mA信号反馈的电动调节阀，精确控制流量，广泛应用于暖通空调、水处理等系统的自动化控制。',
-      features: [
-        '精密流量调节',
-        '电动执行机构',
-        '4-20mA信号反馈',
-        '防腐防锈材质',
-        '开关型/调节型可选',
-      ],
-      application: '适用于空调水系统、供热系统、工业水处理',
-      certifications: ['阀门生产许可证', '压力管道元件制造许可证'],
-      contact: {
-        phone: '400-234-5678',
-        email: 'valve@example.com',
-      },
-    },
-    {
-      id: 3,
-      name: '不锈钢卡压式管件系统',
-      category: '管道系统',
-      manufacturer: '某某管业科技有限公司',
-      description: '304不锈钢卡压式连接系统，安装快速，密封可靠，广泛应用于建筑冷热水、直饮水等管道系统。',
-      features: [
-        '304/316L不锈钢材质',
-        '卡压式快速连接',
-        '双重O型圈密封',
-        '耐腐蚀、无结垢',
-        '使用寿命50年以上',
-      ],
-      application: '适用于建筑给水、直饮水、热水循环系统',
-      certifications: ['涉水产品卫生许可批件', '绿色建材认证'],
-      contact: {
-        phone: '400-345-6789',
-        email: 'pipe@example.com',
-      },
-    },
-    {
-      id: 4,
-      name: '一体化污水提升设备',
-      category: '水处理设备',
-      manufacturer: '某某环保设备有限公司',
-      description: '地下室污水提升专用设备，集水箱、泵、控制系统于一体，智能化控制，广泛应用于地下商场、地铁站等场所。',
-      features: [
-        '全自动智能控制',
-        '防臭防溢流设计',
-        '双泵互为备用',
-        '耐腐蚀玻璃钢水箱',
-        '故障自动报警',
-      ],
-      application: '适用于地下室、商场、地铁站污水排放',
-      certifications: ['环保产品认证', '污水处理设备制造许可'],
-      contact: {
-        phone: '400-456-7890',
-        email: 'wastewater@example.com',
-      },
-    },
-    {
-      id: 5,
-      name: '无负压供水设备 WFY系列',
-      category: '二次供水',
-      manufacturer: '某某给排水设备股份公司',
-      description: '无负压叠压供水设备，直接串接市政管网，充分利用市政压力，节能高效，避免二次污染。',
-      features: [
-        '无负压技术，充分利用市政压力',
-        '变频恒压供水',
-        '不锈钢稳流罐',
-        '节能30%以上',
-        '水质无二次污染',
-      ],
-      application: '适用于高层住宅、写字楼、酒店二次供水',
-      certifications: ['涉水产品卫生许可', '中国节能产品认证'],
-      contact: {
-        phone: '400-567-8901',
-        email: 'supply@example.com',
-      },
-    },
-    {
-      id: 6,
-      name: '雨水收集回用系统',
-      category: '水处理设备',
-      manufacturer: '某某生态科技有限公司',
-      description: '模块化雨水收集、处理、储存、回用一体化系统，支持海绵城市建设，节约水资源，减少径流污染。',
-      features: [
-        'PP模块化储水池',
-        '多级过滤净化',
-        '智能控制系统',
-        '远程监控管理',
-        '节约水资源40%以上',
-      ],
-      application: '适用于绿色建筑、园区、市政道路、公园广场',
-      certifications: ['环保产品认证', '水资源节约产品', '海绵城市建设推荐产品'],
-      contact: {
-        phone: '400-678-9012',
-        email: 'rainwater@example.com',
-      },
-    },
-    {
-      id: 7,
-      name: '智慧水务监控平台',
-      category: '智能控制',
-      manufacturer: '某某智慧水务科技公司',
-      description: '基于物联网和大数据的智慧水务综合管理平台，实现供水管网、泵站、水质的实时监测和智能调度。',
-      features: [
-        '实时数据采集监控',
-        '管网漏损分析',
-        '水质在线监测',
-        '智能调度优化',
-        '移动端APP管理',
-      ],
-      application: '适用于市政供水、二次供水、园区水务管理',
-      certifications: ['软件产品登记证书', '信息系统集成资质', '高新技术企业'],
-      contact: {
-        phone: '400-789-0123',
-        email: 'smart@example.com',
-      },
-    },
-    {
-      id: 8,
-      name: '超声波流量计 TDS系列',
-      category: '检测仪器',
-      manufacturer: '某某仪表科技有限公司',
-      description: '外夹式超声波流量计，非接触式测量，安装简便，精度高，适用于各种管道流量监测。',
-      features: [
-        '非接触式测量',
-        '精度等级1.0级',
-        '4-20mA/脉冲输出',
-        'IP68防护等级',
-        '数据远程传输',
-      ],
-      application: '适用于市政给排水、工业水计量、能耗监测',
-      certifications: ['计量器具型式批准证书', '防爆合格证'],
-      contact: {
-        phone: '400-890-1234',
-        email: 'meter@example.com',
-      },
-    },
-    {
-      id: 9,
-      name: '排水通气阀 HPVB系列',
-      category: '阀门管件',
-      manufacturer: '某某建材科技股份公司',
-      description: '正压防溢、负压吸气的智能排水通气阀，解决高层建筑排水系统通气问题，节省空间。',
-      features: [
-        '双向通气功能',
-        '防臭防虫设计',
-        '节省专用通气管',
-        '安装维护简便',
-        '适配多种管径',
-      ],
-      application: '适用于高层建筑排水系统、卫生间排水',
-      certifications: ['建筑排水用通气阀检测报告', '绿色建材认证'],
-      contact: {
-        phone: '400-901-2345',
-        email: 'vent@example.com',
-      },
-    },
-    {
-      id: 10,
-      name: 'HDPE双壁波纹管',
-      category: '管道系统',
-      manufacturer: '某某塑业集团有限公司',
-      description: '高密度聚乙烯双壁波纹管，耐腐蚀、重量轻、安装方便，广泛应用于市政排水、雨水管网。',
-      features: [
-        'HDPE环保材料',
-        '耐腐蚀、耐老化',
-        '环刚度SN8/SN10',
-        '连接密封可靠',
-        '使用寿命50年',
-      ],
-      application: '适用于市政排水、雨水管网、农田排灌',
-      certifications: ['化学建材产品质量检测', '环保产品认证'],
-      contact: {
-        phone: '400-012-3456',
-        email: 'hdpe@example.com',
-      },
-    },
-    {
-      id: 11,
-      name: '潜水排污泵 WQ系列',
-      category: '水泵设备',
-      manufacturer: '某某水泵制造有限公司',
-      description: '撕裂式叶轮设计，能有效通过固体颗粒和长纤维，适用于污水处理、市政排水等场合。',
-      features: [
-        '撕裂式叶轮设计',
-        '通过直径≥50mm固体',
-        '干式电机保护',
-        '自动耦合安装',
-        '免维护密封',
-      ],
-      application: '适用于污水处理厂、泵站、工业废水排放',
-      certifications: ['水泵生产许可证', 'CE认证'],
-      contact: {
-        phone: '400-123-7890',
-        email: 'sewage@example.com',
-      },
-    },
-    {
-      id: 12,
-      name: '超滤膜净水设备',
-      category: '水处理设备',
-      manufacturer: '某某水处理技术公司',
-      description: '采用超滤膜技术的集成式净水设备，有效去除细菌、病毒、胶体等，保障饮用水安全。',
-      features: [
-        'UF超滤膜技术',
-        '过滤精度0.01微米',
-        '自动反冲洗',
-        '模块化设计',
-        '出水水质优于国标',
-      ],
-      application: '适用于直饮水工程、学校、医院、企事业单位',
-      certifications: ['涉水产品卫生许可', '水处理设备认证'],
-      contact: {
-        phone: '400-234-8901',
-        email: 'purify@example.com',
-      },
-    },
-  ];
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 12;
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === '全部分类' || product.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // 加载状态
+  const [loading, setLoading] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 搜索防抖
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(0); // 搜索时重置页码
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // 加载分类
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await getProductCategories();
+        if (res.success && res.data) {
+          setCategories(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // 加载产品列表
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params: {
+          page: number;
+          size: number;
+          categoryId?: number;
+          keyword?: string;
+        } = {
+          page: currentPage,
+          size: pageSize,
+        };
+
+        if (selectedCategoryId !== null) {
+          params.categoryId = selectedCategoryId;
+        }
+        if (debouncedSearchTerm) {
+          params.keyword = debouncedSearchTerm;
+        }
+
+        const res = await getPublicProducts(params);
+
+        if (res.success && res.data) {
+          setProducts(res.data.content);
+          setTotalPages(res.data.page.totalPages);
+          setTotalElements(res.data.page.totalElements);
+        } else {
+          setError(res.message || '加载产品失败');
+        }
+      } catch (err) {
+        setError('网络错误，请稍后重试');
+        console.error('Failed to load products:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [currentPage, selectedCategoryId, debouncedSearchTerm]);
+
+  // 处理分类选择
+  const handleCategorySelect = useCallback((categoryId: number | null) => {
+    setSelectedCategoryId(categoryId);
+    setCurrentPage(0);
+  }, []);
+
+  // 打开产品详情
+  const handleViewProduct = async (productId: number) => {
+    setLoadingDetail(true);
+
+    try {
+      // 增加浏览量
+      incrementProductViews(productId).catch(console.error);
+
+      // 获取详情
+      const res = await getPublicProductById(productId);
+      if (res.success && res.data) {
+        setProductDetail(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load product detail:', err);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // 关闭详情模态框
+  const handleCloseDetail = () => {
+    setProductDetail(null);
+  };
+
+  // 渲染加载骨架屏
+  const renderSkeleton = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-200 animate-pulse">
+          <div className="h-48 bg-gray-200"></div>
+          <div className="p-6 space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // 渲染分页
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+          disabled={currentPage === 0}
+          className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum: number;
+            if (totalPages <= 5) {
+              pageNum = i;
+            } else if (currentPage < 3) {
+              pageNum = i;
+            } else if (currentPage > totalPages - 4) {
+              pageNum = totalPages - 5 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-10 h-10 rounded-lg ${
+                  currentPage === pageNum
+                    ? 'bg-blue-600 text-white'
+                    : 'border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {pageNum + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+          disabled={currentPage === totalPages - 1}
+          className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {/* Product Detail Modal */}
+      {productDetail && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8">
+            {/* Modal Header with Image */}
+            <div className="relative h-64 md:h-80">
+              {getFirstImage(productDetail.images) ? (
+                <ImageWithFallback
+                  src={getFirstImage(productDetail.images) || ''}
+                  alt={productDetail.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                  <Package className="w-24 h-24 text-indigo-400" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+
+              {/* Close Button */}
+              <button
+                onClick={handleCloseDetail}
+                className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Product Meta on Image */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+                    {productDetail.category?.name}
+                  </span>
+                  {productDetail.featured && (
+                    <span className="px-3 py-1 bg-red-500/80 backdrop-blur-sm rounded-full text-sm">
+                      推荐
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-2xl md:text-3xl mb-2 leading-tight">
+                  {productDetail.name}
+                </h1>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    <span>{productDetail.manufacturer}</span>
+                  </div>
+                  {productDetail.model && (
+                    <div className="flex items-center gap-2">
+                      <span>型号: {productDetail.model}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span>{productDetail.views} 浏览</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 md:p-10 max-h-[60vh] overflow-y-auto">
+              {/* Price */}
+              {productDetail.price && (
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">参考价格</div>
+                  <div className="text-2xl text-red-600">{productDetail.price}</div>
+                </div>
+              )}
+
+              {/* Summary */}
+              {productDetail.summary && (
+                <div className="mb-6">
+                  <p className="text-gray-600 leading-relaxed">{productDetail.summary}</p>
+                </div>
+              )}
+
+              {/* Description */}
+              {productDetail.description && (
+                <div className="mb-6">
+                  <h3 className="text-lg text-gray-900 mb-3">产品介绍</h3>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-600"
+                    dangerouslySetInnerHTML={{ __html: productDetail.description }}
+                  />
+                </div>
+              )}
+
+              {/* Features */}
+              {parseJsonArray(productDetail.features).length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg text-gray-900 mb-3">产品特点</h3>
+                  <div className="space-y-2">
+                    {parseJsonArray(productDetail.features).map((feature, index) => (
+                      <div key={index} className="flex items-start gap-2 text-gray-600">
+                        <span className="text-blue-600 mt-1">•</span>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Application */}
+              {productDetail.application && (
+                <div className="mb-6">
+                  <h3 className="text-lg text-gray-900 mb-3">应用范围</h3>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-600"
+                    dangerouslySetInnerHTML={{ __html: productDetail.application }}
+                  />
+                </div>
+              )}
+
+              {/* Specifications */}
+              {productDetail.specifications && (
+                <div className="mb-6">
+                  <h3 className="text-lg text-gray-900 mb-3">技术规格</h3>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-600"
+                    dangerouslySetInnerHTML={{ __html: productDetail.specifications }}
+                  />
+                </div>
+              )}
+
+              {/* Certifications */}
+              {parseJsonArray(productDetail.certifications).length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg text-gray-900 mb-3 flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    认证资质
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {parseJsonArray(productDetail.certifications).map((cert, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-sm"
+                      >
+                        {cert}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Contact Info */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-lg text-gray-900 mb-4">联系方式</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {productDetail.contact && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <span>{productDetail.contact}</span>
+                    </div>
+                  )}
+                  {productDetail.contactPhone && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                      <span>{productDetail.contactPhone}</span>
+                    </div>
+                  )}
+                  {productDetail.contactEmail && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <span>{productDetail.contactEmail}</span>
+                    </div>
+                  )}
+                  {productDetail.website && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Globe className="w-5 h-5 text-gray-400" />
+                      <a
+                        href={productDetail.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {productDetail.website}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <button className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                    <span>咨询详情</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                  <button className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                    <Bookmark className="w-4 h-4" />
+                    <span>收藏</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Detail Modal */}
+      {loadingDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+            <p className="text-gray-600">加载中...</p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -296,7 +432,7 @@ export function ProductCatalog() {
 
         {/* Search and Filter */}
         <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
             {/* Search Input */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -308,128 +444,129 @@ export function ProductCatalog() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+          </div>
 
-            {/* Category Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                    selectedCategory === category
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
+          {/* Category Filter */}
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+            <button
+              onClick={() => handleCategorySelect(null)}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                selectedCategoryId === null
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              全部分类
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleCategorySelect(category.id)}
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                  selectedCategoryId === category.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
           </div>
 
           <div className="mt-4 text-sm text-gray-500">
-            找到 {filteredProducts.length} 个产品
+            找到 {totalElements} 个产品
           </div>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm text-red-600 underline"
             >
-              {/* Product Image Placeholder */}
-              <div className="h-48 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
-                <Package className="w-16 h-16 text-indigo-400" />
-              </div>
+              重新加载
+            </button>
+          </div>
+        )}
 
-              <div className="p-6">
-                {/* Category Badge */}
-                <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-sm mb-3">
-                  {product.category}
-                </div>
-
-                {/* Product Name */}
-                <h3 className="text-lg text-gray-900 mb-2">{product.name}</h3>
-
-                {/* Manufacturer */}
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                  <Building2 className="w-4 h-4" />
-                  <span>{product.manufacturer}</span>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {product.description}
-                </p>
-
-                {/* Features */}
-                <div className="mb-4">
-                  <div className="text-sm text-gray-700 mb-2">产品特点</div>
-                  <div className="space-y-1">
-                    {product.features.slice(0, 3).map((feature, index) => (
-                      <div key={index} className="text-sm text-gray-600 flex items-start gap-2">
-                        <span className="text-blue-600 mt-1">•</span>
-                        <span>{feature}</span>
+        {/* Products Grid */}
+        {loading ? (
+          renderSkeleton()
+        ) : products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => handleViewProduct(product.id)}
+                  className="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group"
+                >
+                  {/* Product Image */}
+                  <div className="h-48 relative overflow-hidden">
+                    {getFirstImage(product.images) ? (
+                      <ImageWithFallback
+                        src={getFirstImage(product.images) || ''}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                        <Package className="w-16 h-16 text-indigo-400" />
                       </div>
-                    ))}
+                    )}
+                    {product.featured && (
+                      <div className="absolute top-3 left-3">
+                        <span className="px-3 py-1 bg-red-500 text-white rounded-full text-xs">
+                          推荐
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Application */}
-                <div className="mb-4 pb-4 border-b border-gray-100">
-                  <div className="text-sm text-gray-700 mb-1">应用范围</div>
-                  <div className="text-sm text-gray-600">{product.application}</div>
-                </div>
+                  <div className="p-6">
+                    {/* Category Badge */}
+                    <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-sm mb-3">
+                      {product.categoryName}
+                    </div>
 
-                {/* Certifications */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
-                    <Tag className="w-4 h-4" />
-                    <span>认证资质</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {product.certifications.map((cert, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs"
-                      >
-                        {cert}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                    {/* Product Name */}
+                    <h3 className="text-lg text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
+                      {product.name}
+                    </h3>
 
-                {/* Contact */}
-                <div className="space-y-2 mb-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    <span>{product.contact.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    <span>{product.contact.email}</span>
-                  </div>
-                </div>
+                    {/* Manufacturer */}
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <Building2 className="w-4 h-4" />
+                      <span>{product.manufacturer}</span>
+                    </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                    <span>咨询详情</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    收藏
-                  </button>
+                    {/* Summary/Description */}
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                      {product.summary || product.description}
+                    </p>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Eye className="w-4 h-4" />
+                        <span>{product.views} 浏览</span>
+                      </div>
+                      <button className="text-blue-600 text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
+                        <span>查看详情</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Empty State */}
-        {filteredProducts.length === 0 && (
+            {/* Pagination */}
+            {renderPagination()}
+          </>
+        ) : (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search className="w-16 h-16 mx-auto" />

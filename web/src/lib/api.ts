@@ -710,7 +710,7 @@ export async function checkActivityRegistration(
   return request(`/activities/${activityId}/check-registration?phone=${encodeURIComponent(phone)}`);
 }
 
-// ========== Admin Product API ==========
+// ========== Public Product API ==========
 
 import type {
   ProductListResponse,
@@ -718,6 +718,38 @@ import type {
   ProductRequest,
   ProductCategoryResponse,
 } from '@/types/product';
+
+/**
+ * 获取公开产品列表（前台展示）
+ */
+export async function getPublicProducts(
+  params?: PageParams & { keyword?: string; categoryId?: number }
+): Promise<Result<Page<ProductListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  const query = searchParams.toString();
+  return request(`/products${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取公开产品详情（前台展示）
+ */
+export async function getPublicProductById(id: number): Promise<Result<ProductResponse>> {
+  return request(`/products/${id}`);
+}
+
+/**
+ * 增加产品浏览量
+ */
+export async function incrementProductViews(id: number): Promise<Result<void>> {
+  return request(`/products/${id}/view`, { method: 'POST' });
+}
+
+// ========== Admin Product API ==========
 
 /**
  * 获取产品列表
