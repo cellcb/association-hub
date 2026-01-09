@@ -232,9 +232,31 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
     endDate: string | null,
     endTime: string | null,
     startDate?: string | null,
-    startTime?: string | null
+    startTime?: string | null,
+    activityDate?: string | null,
+    activityTime?: string | null,
+    activityEndDate?: string | null,
+    activityEndTime?: string | null
   ): { open: boolean; message: string } => {
     const now = new Date();
+
+    // 检查活动是否已结束
+    if (activityEndDate) {
+      const actEndTimeStr = activityEndTime || '23:59:59';
+      const activityEnd = new Date(`${activityEndDate}T${actEndTimeStr}`);
+      if (now > activityEnd) {
+        return { open: false, message: '活动已结束' };
+      }
+    }
+
+    // 检查活动是否已开始（无结束时间时，开始即视为结束）
+    if (activityDate) {
+      const activityTimeStr = activityTime || '00:00:00';
+      const activityStart = new Date(`${activityDate}T${activityTimeStr}`);
+      if (now >= activityStart) {
+        return { open: false, message: '活动已结束' };
+      }
+    }
 
     if (startDate) {
       const startTimeStr = startTime || '00:00:00';
@@ -515,7 +537,11 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                       {activity.status === 'UPCOMING' && (() => {
                         const regStatus = isRegistrationOpen(
                           activity.registrationEndDate,
-                          activity.registrationEndTime
+                          activity.registrationEndTime,
+                          null,
+                          null,
+                          activity.date,
+                          activity.time
                         );
                         return regStatus.open ? (
                           <button
@@ -1163,7 +1189,11 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                         activityDetail?.registrationEndDate || selectedActivity.registrationEndDate,
                         activityDetail?.registrationEndTime || selectedActivity.registrationEndTime,
                         activityDetail?.registrationStartDate,
-                        activityDetail?.registrationStartTime
+                        activityDetail?.registrationStartTime,
+                        activityDetail?.date || selectedActivity.date,
+                        activityDetail?.time || selectedActivity.time,
+                        activityDetail?.endDate,
+                        activityDetail?.endTime
                       );
                       return regStatus.open ? (
                         <div className="flex gap-3">
