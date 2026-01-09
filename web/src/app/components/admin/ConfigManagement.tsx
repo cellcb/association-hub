@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings,
   Save,
@@ -23,6 +23,7 @@ import {
   Target,
   Zap,
   Info,
+  Upload,
 } from 'lucide-react';
 import { getConfigs, updateConfig } from '@/lib/api';
 import type { ConfigResponse, ConfigUpdateRequest } from '@/types/config';
@@ -572,23 +573,12 @@ function ObjectEditor({ value, onChange }: ObjectEditorProps) {
         // Handle image fields
         if (isImageField(key)) {
           return (
-            <div key={key} className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{getFieldLabel(key)}</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={String(val || '')}
-                  onChange={(e) => handleFieldChange(key, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                  placeholder="输入图片 URL"
-                />
-                {val && (
-                  <div className="w-10 h-10 rounded border border-gray-200 overflow-hidden flex-shrink-0">
-                    <img src={String(val)} alt="" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
-            </div>
+            <ImageFieldEditor
+              key={key}
+              value={String(val || '')}
+              label={getFieldLabel(key)}
+              onChange={(newVal) => handleFieldChange(key, newVal)}
+            />
           );
         }
 
@@ -625,6 +615,122 @@ function ObjectEditor({ value, onChange }: ObjectEditorProps) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Image Field Editor Component with Upload Support
+interface ImageFieldEditorProps {
+  value: string;
+  label: string;
+  onChange: (value: string) => void;
+}
+
+function ImageFieldEditor({ value, label, onChange }: ImageFieldEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('请选择图片文件');
+      return;
+    }
+
+    // Validate file size (2MB limit)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError('图片大小不能超过 2MB');
+      return;
+    }
+
+    setUploading(true);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      onChange(base64);
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      setError('图片读取失败');
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const isBase64 = value.startsWith('data:image');
+
+  return (
+    <div className="col-span-2">
+      <label className="block text-sm text-gray-600 mb-1">{label}</label>
+      <div className="flex gap-2 items-start">
+        <div className="flex-1 space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={isBase64 ? '(已上传图片)' : value}
+              onChange={(e) => onChange(e.target.value)}
+              disabled={isBase64}
+              className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm ${
+                isBase64 ? 'bg-gray-50 text-gray-500' : ''
+              }`}
+              placeholder="输入图片 URL 或上传图片"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              上传
+            </button>
+            {isBase64 && (
+              <button
+                type="button"
+                onClick={() => onChange('')}
+                className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                清除
+              </button>
+            )}
+          </div>
+          {error && (
+            <p className="text-xs text-red-500">{error}</p>
+          )}
+          <p className="text-xs text-gray-400">支持 jpg/png/gif，最大 2MB</p>
+        </div>
+        {value && (
+          <div className="w-16 h-16 rounded border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
+            <img src={value} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
