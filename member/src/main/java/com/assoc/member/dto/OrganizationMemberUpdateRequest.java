@@ -43,9 +43,9 @@ public class OrganizationMemberUpdateRequest {
 
     private String businessScope;
 
-    private String[] qualifications;
+    private String qualifications;
 
-    private String[] projects;
+    private String projects;
 
     @Size(max = 50, message = "Province must be at most 50 characters")
     private String province;

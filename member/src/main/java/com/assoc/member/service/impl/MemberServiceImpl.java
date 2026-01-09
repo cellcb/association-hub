@@ -96,10 +96,27 @@ public class MemberServiceImpl implements MemberService {
         if (request.getPosition() != null) individual.setPosition(request.getPosition());
         if (request.getTitle() != null) individual.setTitle(request.getTitle());
         if (request.getExpertise() != null) {
-            try {
-                individual.setExpertise(objectMapper.writeValueAsString(request.getExpertise()));
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize expertise", e);
+            // Convert comma-separated string to JSON array if needed
+            String expertise = request.getExpertise().trim();
+            if (!expertise.isEmpty()) {
+                if (!expertise.startsWith("[")) {
+                    // Convert comma-separated string to JSON array
+                    String[] items = expertise.split(",");
+                    try {
+                        individual.setExpertise(objectMapper.writeValueAsString(
+                            java.util.Arrays.stream(items)
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toArray(String[]::new)
+                        ));
+                    } catch (JsonProcessingException e) {
+                        log.warn("Failed to serialize expertise", e);
+                        individual.setExpertise(expertise);
+                    }
+                } else {
+                    // Already JSON format, use as-is
+                    individual.setExpertise(expertise);
+                }
             }
         }
         if (request.getProvince() != null) individual.setProvince(request.getProvince());
@@ -149,17 +166,47 @@ public class MemberServiceImpl implements MemberService {
         if (request.getEmployeeCount() != null) organization.setEmployeeCount(request.getEmployeeCount());
         if (request.getBusinessScope() != null) organization.setBusinessScope(request.getBusinessScope());
         if (request.getQualifications() != null) {
-            try {
-                organization.setQualifications(objectMapper.writeValueAsString(request.getQualifications()));
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize qualifications", e);
+            String qualifications = request.getQualifications().trim();
+            if (!qualifications.isEmpty()) {
+                if (!qualifications.startsWith("[")) {
+                    // Convert comma-separated string to JSON array
+                    String[] items = qualifications.split(",");
+                    try {
+                        organization.setQualifications(objectMapper.writeValueAsString(
+                            java.util.Arrays.stream(items)
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toArray(String[]::new)
+                        ));
+                    } catch (JsonProcessingException e) {
+                        log.warn("Failed to serialize qualifications", e);
+                        organization.setQualifications(qualifications);
+                    }
+                } else {
+                    organization.setQualifications(qualifications);
+                }
             }
         }
         if (request.getProjects() != null) {
-            try {
-                organization.setProjects(objectMapper.writeValueAsString(request.getProjects()));
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize projects", e);
+            String projects = request.getProjects().trim();
+            if (!projects.isEmpty()) {
+                if (!projects.startsWith("[")) {
+                    // Convert comma-separated string to JSON array
+                    String[] items = projects.split(",");
+                    try {
+                        organization.setProjects(objectMapper.writeValueAsString(
+                            java.util.Arrays.stream(items)
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toArray(String[]::new)
+                        ));
+                    } catch (JsonProcessingException e) {
+                        log.warn("Failed to serialize projects", e);
+                        organization.setProjects(projects);
+                    }
+                } else {
+                    organization.setProjects(projects);
+                }
             }
         }
         if (request.getProvince() != null) organization.setProvince(request.getProvince());

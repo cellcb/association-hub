@@ -2,6 +2,7 @@ package com.assoc.member.service.impl;
 
 import com.assoc.common.exception.BusinessException;
 import com.assoc.iam.dto.UserRequest;
+import com.assoc.iam.repository.RoleRepository;
 import com.assoc.iam.service.UserService;
 import com.assoc.member.dto.*;
 import com.assoc.member.entity.*;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -30,6 +32,7 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
     private final IndividualMemberRepository individualMemberRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final UserService userService;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -65,6 +68,12 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         var userResponse = userService.createUser(userRequest);
         Long userId = userResponse.getId();
         log.info("Created disabled user for application: userId={}, username={}", userId, request.getUsername());
+
+        // 1.1 Assign USER role
+        roleRepository.findByCode("USER").ifPresent(role -> {
+            userService.assignRoles(userId, Set.of(role.getId()));
+            log.info("Assigned USER role to new user: userId={}", userId);
+        });
 
         // 2. Create Member record with PENDING status
         Member member = new Member();

@@ -735,6 +735,39 @@ export async function getMyMemberRegistrationProfile(): Promise<Result<MemberReg
   return { ...res, data: null };
 }
 
+// ========== Member Self-Service API ==========
+
+/**
+ * 获取当前登录用户的完整会员信息
+ */
+export async function getMyMemberProfile(): Promise<Result<MemberResponse>> {
+  return request('/members/me');
+}
+
+/**
+ * 更新当前用户的个人会员信息
+ */
+export async function updateMyIndividualProfile(
+  data: IndividualMemberUpdateRequest
+): Promise<Result<MemberResponse>> {
+  return request('/members/me/individual', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新当前用户的单位会员信息
+ */
+export async function updateMyOrganizationProfile(
+  data: OrganizationMemberUpdateRequest
+): Promise<Result<MemberResponse>> {
+  return request('/members/me/organization', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 // ========== Public Product API ==========
 
 import type {

@@ -35,7 +35,7 @@ public class IndividualMemberUpdateRequest {
     @Size(max = 100, message = "Title must be at most 100 characters")
     private String title;
 
-    private String[] expertise;
+    private String expertise;
 
     @Size(max = 50, message = "Province must be at most 50 characters")
     private String province;

@@ -105,6 +105,7 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                       onClick={async () => {
                         await logout();
                         setUserMenuOpen(false);
+                        onNavigate('home');
                       }}
                     >
                       <LogOut className="w-4 h-4" />
@@ -181,6 +182,7 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                   onClick={async () => {
                     await logout();
                     setMobileMenuOpen(false);
+                    onNavigate('home');
                   }}
                   className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
                 >
