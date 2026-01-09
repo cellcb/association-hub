@@ -980,7 +980,7 @@ function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: Act
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">活动人数</label>
+                  <label className="block text-sm text-gray-700 mb-2">限定名额</label>
                   <input
                     type="number"
                     name="capacity"
@@ -988,7 +988,7 @@ function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: Act
                     value={formData.capacity}
                     onChange={onFormChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="请输入活动人数上限"
+                    placeholder="请输入限定名额"
                   />
                 </div>
 

@@ -494,7 +494,7 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                       {activity.capacity && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <Users className="w-4 h-4" />
-                          <span>{activity.capacity} 人容量</span>
+                          <span>限定名额 {activity.capacity} 人</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-gray-600">
@@ -965,7 +965,7 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                       <div>
                         <h3 className="text-sm text-gray-500 mb-2 flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          活动容量
+                          限定名额
                         </h3>
                         <p className="text-gray-900">{activityDetail.capacity ? `${activityDetail.capacity} 人` : '不限'}</p>
                         <p className="text-sm text-gray-600">已报名 {activityDetail.registeredCount || 0} 人</p>
