@@ -153,6 +153,15 @@ public class RegistrationServiceImpl implements RegistrationService {
         activityRepository.decrementRegisteredCount(registration.getActivityId());
     }
 
+    @Override
+    public Page<RegistrationResponse> getMyRegistrations(Long userId, Pageable pageable) {
+        Page<ActivityRegistration> registrations = registrationRepository.findByUserIdOrderByCreatedTimeDesc(userId, pageable);
+        return registrations.map(r -> {
+            Activity activity = activityRepository.findById(r.getActivityId()).orElse(null);
+            return toResponse(r, activity != null ? activity.getTitle() : null);
+        });
+    }
+
     private RegistrationResponse toResponse(ActivityRegistration registration, String activityTitle) {
         RegistrationResponse response = new RegistrationResponse();
         response.setId(registration.getId());

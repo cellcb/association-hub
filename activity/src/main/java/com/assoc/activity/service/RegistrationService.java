@@ -16,6 +16,9 @@ public interface RegistrationService {
 
     boolean isRegistered(Long activityId, String phone);
 
+    // User methods
+    Page<RegistrationResponse> getMyRegistrations(Long userId, Pageable pageable);
+
     // Admin methods
     Page<RegistrationResponse> getRegistrations(Long activityId, RegistrationStatus status, Pageable pageable);
 

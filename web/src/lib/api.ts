@@ -711,6 +711,20 @@ export async function checkActivityRegistration(
 }
 
 /**
+ * 获取我的报名列表
+ */
+export async function getMyRegistrations(
+  params?: PageParams
+): Promise<Result<Page<RegistrationResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  const query = searchParams.toString();
+  return request(`/activities/my-registrations${query ? `?${query}` : ''}`);
+}
+
+/**
  * 用户档案响应（包含会员信息）
  */
 interface UserProfileResponse {

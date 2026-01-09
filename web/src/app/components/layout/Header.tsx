@@ -1,4 +1,4 @@
-import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, Newspaper, FolderOpen, LogOut, UserCircle, ChevronDown } from 'lucide-react';
+import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, Newspaper, FolderOpen, LogOut, UserCircle, ChevronDown, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { PageType, NavigationParams } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
@@ -99,6 +99,16 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                       <User className="w-4 h-4" />
                       个人中心
                     </button>
+                    <button
+                      className="w-full px-4 py-2 text-left text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      onClick={() => {
+                        onNavigate('my-registrations' as PageType);
+                        setUserMenuOpen(false);
+                      }}
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                      我的报名
+                    </button>
                     <div className="border-t border-gray-100 my-1"></div>
                     <button
                       className="w-full px-4 py-2 text-left text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
@@ -173,10 +183,20 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
                     onNavigate('profile' as PageType);
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3 mb-2"
+                  className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3"
                 >
                   <User className="w-5 h-5" />
                   个人中心
+                </button>
+                <button
+                  onClick={() => {
+                    onNavigate('my-registrations' as PageType);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-3 text-left rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-3 mb-2"
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  我的报名
                 </button>
                 <button
                   onClick={async () => {

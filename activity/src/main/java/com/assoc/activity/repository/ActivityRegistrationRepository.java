@@ -19,6 +19,8 @@ public interface ActivityRegistrationRepository extends JpaRepository<ActivityRe
 
     List<ActivityRegistration> findByUserId(Long userId);
 
+    Page<ActivityRegistration> findByUserIdOrderByCreatedTimeDesc(Long userId, Pageable pageable);
+
     Optional<ActivityRegistration> findByActivityIdAndPhone(Long activityId, String phone);
 
     Optional<ActivityRegistration> findByActivityIdAndUserId(Long activityId, Long userId);

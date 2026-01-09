@@ -7,13 +7,14 @@ import { ProjectShowcase } from './components/ProjectShowcase';
 import { ActivityCenter } from './components/ActivityCenter';
 import { ProductCatalog } from './components/ProductCatalog';
 import { UserProfile } from './components/UserProfile';
+import { MyRegistrations } from './components/MyRegistrations';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SiteConfigProvider } from '@/contexts/SiteConfigContext';
 
-export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'admin';
+export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'my-registrations' | 'admin';
 
 export interface NavigationParams {
   activityId?: number;
@@ -49,6 +50,8 @@ function AppContent() {
         return <ProductCatalog />;
       case 'profile':
         return <UserProfile />;
+      case 'my-registrations':
+        return <MyRegistrations onNavigate={handleNavigate} />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }
