@@ -1,6 +1,6 @@
 import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, Newspaper, FolderOpen, LogOut, UserCircle, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-import { PageType } from '../../App';
+import { PageType, NavigationParams } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
 import { MembershipApplicationModal } from '../auth/MembershipApplicationModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +8,7 @@ import { useSiteConfig } from '@/contexts/SiteConfigContext';
 
 interface HeaderProps {
   currentPage: PageType;
-  onNavigate: (page: PageType) => void;
+  onNavigate: (page: PageType, params?: NavigationParams) => void;
   onAdminClick: () => void;
 }
 

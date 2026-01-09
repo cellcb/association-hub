@@ -23,7 +23,7 @@ import {
   Loader2,
   LucideIcon
 } from 'lucide-react';
-import { PageType } from '../App';
+import { PageType, NavigationParams } from '../App';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Carousel } from './Carousel';
 import { MembershipApplicationModal } from './auth/MembershipApplicationModal';
@@ -45,7 +45,7 @@ import type {
 } from '@/types/config';
 
 interface HomeProps {
-  onNavigate: (page: PageType) => void;
+  onNavigate: (page: PageType, params?: NavigationParams) => void;
 }
 
 // Icon mapping for dynamic icon rendering
@@ -407,7 +407,14 @@ export function Home({ onNavigate }: HomeProps) {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <button className="px-8 py-4 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                    <button
+                      className="px-8 py-4 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                      onClick={() => {
+                        if (exhibitionInfo.primaryButton.activityId) {
+                          onNavigate('activities', { activityId: exhibitionInfo.primaryButton.activityId });
+                        }
+                      }}
+                    >
                       {(() => { const Icon = getIcon(exhibitionInfo.primaryButton.icon); return <Icon className="w-5 h-5" />; })()}
                       <span>{exhibitionInfo.primaryButton.text}</span>
                     </button>

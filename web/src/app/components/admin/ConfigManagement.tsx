@@ -132,7 +132,26 @@ export function ConfigManagement() {
 
   const parseJsonValue = (value: string): unknown => {
     try {
-      return JSON.parse(value);
+      let parsed = JSON.parse(value);
+      // Handle double-encoded JSON strings
+      if (typeof parsed === 'string') {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch {
+          // Not double-encoded, keep the string
+        }
+      }
+      return parsed;
+    } catch {
+      return value;
+    }
+  };
+
+  // Format JSON string for display in textarea
+  const formatJsonString = (value: string): string => {
+    try {
+      const parsed = JSON.parse(value);
+      return JSON.stringify(parsed, null, 2);
     } catch {
       return value;
     }
@@ -157,27 +176,47 @@ export function ConfigManagement() {
 
     if (isObject) {
       return (
-        <div className="space-y-2">
-          <button
-            onClick={() => toggleExpand(config.id)}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-          >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {isExpanded ? '收起' : '展开'} JSON 编辑器
-          </button>
-          {isExpanded && (
-            <textarea
-              value={currentValue}
-              onChange={(e) => handleValueChange(config.id, e.target.value)}
-              className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          )}
+        <div className="space-y-4">
+          <ObjectEditor
+            value={parsed as Record<string, unknown>}
+            onChange={(newValue) => handleValueChange(config.id, JSON.stringify(newValue, null, 2))}
+          />
+          <div className="border-t border-gray-200 pt-4">
+            <button
+              onClick={() => toggleExpand(config.id)}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {isExpanded ? '收起' : '展开'} JSON 编辑器
+            </button>
+            {isExpanded && (
+              <textarea
+                value={formatJsonString(currentValue)}
+                onChange={(e) => handleValueChange(config.id, e.target.value)}
+                className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2 whitespace-pre"
+              />
+            )}
+          </div>
         </div>
       );
     }
 
-    // Simple string value
+    // Simple string value - check if it looks like JSON (starts with { or [)
     const stringValue = typeof parsed === 'string' ? parsed.replace(/^"|"$/g, '') : String(parsed);
+    const looksLikeJson = stringValue.trim().startsWith('{') || stringValue.trim().startsWith('[');
+
+    if (looksLikeJson || stringValue.length > 100) {
+      // Use textarea for JSON-like content or long strings
+      return (
+        <textarea
+          value={formatJsonString(stringValue)}
+          onChange={(e) => handleValueChange(config.id, e.target.value)}
+          rows={Math.min(20, Math.max(6, stringValue.split('\n').length + 2))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 whitespace-pre"
+        />
+      );
+    }
+
     return (
       <input
         type="text"
@@ -458,6 +497,7 @@ function ObjectEditor({ value, onChange }: ObjectEditorProps) {
       iconColor: '图标颜色',
       highlighted: '高亮显示',
       text: '文字',
+      activityId: '关联活动ID',
     };
     return labels[key] || key;
   };
@@ -469,13 +509,37 @@ function ObjectEditor({ value, onChange }: ObjectEditorProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {Object.entries(value).map(([key, val]) => {
-        // Skip complex nested objects for now
+        // Handle nested objects recursively
         if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-          return null;
+          return (
+            <div key={key} className="col-span-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <label className="block text-sm font-medium text-gray-700 mb-3">{getFieldLabel(key)}</label>
+              <ObjectEditor
+                value={val as Record<string, unknown>}
+                onChange={(newVal) => handleFieldChange(key, newVal)}
+              />
+            </div>
+          );
         }
 
-        // Handle arrays as comma-separated strings
+        // Handle arrays
         if (Array.isArray(val)) {
+          // Check if array contains objects
+          const hasObjects = val.length > 0 && typeof val[0] === 'object' && val[0] !== null;
+          if (hasObjects) {
+            // Use ArrayEditor for object arrays
+            return (
+              <div key={key} className="col-span-2 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <label className="block text-sm font-medium text-gray-700 mb-3">{getFieldLabel(key)}</label>
+                <ArrayEditor
+                  value={val}
+                  onChange={(newVal) => handleFieldChange(key, newVal)}
+                  configKey={key}
+                />
+              </div>
+            );
+          }
+          // Simple string array - use textarea
           return (
             <div key={key} className="col-span-2">
               <label className="block text-sm text-gray-600 mb-1">{getFieldLabel(key)}</label>

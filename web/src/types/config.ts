@@ -109,7 +109,7 @@ export interface ExhibitionInfo {
   description: string;
   stats: ExhibitionStat[];
   image: string;
-  primaryButton: { text: string; icon: string };
+  primaryButton: { text: string; icon: string; activityId?: number };
   secondaryButton: { text: string; icon: string };
 }
 

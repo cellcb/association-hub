@@ -338,6 +338,9 @@ export function ActivityManagement() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-mono">
+                      ID: {activity.id}
+                    </span>
                     <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm">
                       {activity.typeName}
                     </span>

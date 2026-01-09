@@ -15,9 +15,19 @@ import { SiteConfigProvider } from '@/contexts/SiteConfigContext';
 
 export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'admin';
 
+export interface NavigationParams {
+  activityId?: number;
+}
+
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
+  const [navParams, setNavParams] = useState<NavigationParams>({});
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const handleNavigate = (page: PageType, params?: NavigationParams) => {
+    setCurrentPage(page);
+    setNavParams(params || {});
+  };
 
   const renderPage = () => {
     if (isAdmin) {
@@ -26,7 +36,7 @@ function AppContent() {
 
     switch (currentPage) {
       case 'home':
-        return <Home onNavigate={setCurrentPage} />;
+        return <Home onNavigate={handleNavigate} />;
       case 'news':
         return <NewsCenter />;
       case 'experts':
@@ -34,22 +44,22 @@ function AppContent() {
       case 'projects':
         return <ProjectShowcase />;
       case 'activities':
-        return <ActivityCenter />;
+        return <ActivityCenter initialActivityId={navParams.activityId} />;
       case 'products':
         return <ProductCatalog />;
       case 'profile':
         return <UserProfile />;
       default:
-        return <Home onNavigate={setCurrentPage} />;
+        return <Home onNavigate={handleNavigate} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {!isAdmin && (
-        <Header 
-          currentPage={currentPage} 
-          onNavigate={setCurrentPage}
+        <Header
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
           onAdminClick={() => setIsAdmin(true)}
         />
       )}

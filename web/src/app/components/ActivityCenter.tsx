@@ -1,5 +1,5 @@
 import { Calendar, MapPin, Users, Clock, Tag, Filter, ExternalLink, X, User, Mail, Phone, Building2, FileText, CheckCircle, Loader2, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPublicActivities, getPublicActivityById, registerActivity, getMyMemberRegistrationProfile } from '@/lib/api';
 import type {
   ActivityListResponse,
@@ -28,7 +28,11 @@ const typeFilterMap: Record<string, ActivityType | undefined> = {
   '其他': 'OTHER',
 };
 
-export function ActivityCenter() {
+interface ActivityCenterProps {
+  initialActivityId?: number;
+}
+
+export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
   // 列表数据状态
   const [activities, setActivities] = useState<ActivityListResponse[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -97,6 +101,50 @@ export function ActivityCenter() {
   useEffect(() => {
     loadActivities();
   }, [loadActivities]);
+
+  // 处理初始活动 ID，自动打开详情弹窗
+  const initialActivityIdRef = useRef<number | undefined>(initialActivityId);
+  useEffect(() => {
+    if (initialActivityId && initialActivityId !== initialActivityIdRef.current) {
+      initialActivityIdRef.current = initialActivityId;
+    }
+    if (initialActivityId) {
+      // 直接加载并打开详情弹窗
+      const loadInitialActivity = async () => {
+        setDetailLoading(true);
+        setShowDetailModal(true);
+        try {
+          const res = await getPublicActivityById(initialActivityId);
+          if (res.success && res.data) {
+            setActivityDetail(res.data);
+            // 创建一个简化的 ActivityListResponse 用于显示
+            setSelectedActivity({
+              id: res.data.id,
+              title: res.data.title,
+              type: res.data.type,
+              typeName: res.data.typeName,
+              status: res.data.status,
+              statusName: res.data.statusName,
+              date: res.data.date,
+              time: res.data.time,
+              location: res.data.location,
+              fee: res.data.fee,
+              capacity: res.data.capacity,
+              registeredCount: res.data.registeredCount,
+              description: res.data.description,
+              organization: res.data.organization,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load initial activity:', error);
+          setShowDetailModal(false);
+        } finally {
+          setDetailLoading(false);
+        }
+      };
+      loadInitialActivity();
+    }
+  }, [initialActivityId]);
 
   // 类型筛选变化时重置页码
   const handleTypeChange = (type: string) => {
