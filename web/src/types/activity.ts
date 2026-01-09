@@ -55,6 +55,10 @@ export interface ActivityListResponse {
   typeName: string;
   date: string | null;         // YYYY-MM-DD
   time: string | null;         // HH:mm:ss
+  endDate: string | null;      // 活动结束日期
+  endTime: string | null;      // 活动结束时间
+  registrationStartDate: string | null;
+  registrationStartTime: string | null;
   registrationEndDate: string | null;
   registrationEndTime: string | null;
   location: string | null;

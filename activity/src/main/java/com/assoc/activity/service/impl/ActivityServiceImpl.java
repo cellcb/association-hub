@@ -148,6 +148,10 @@ public class ActivityServiceImpl implements ActivityService {
         response.setTypeName(getTypeName(activity.getType()));
         response.setDate(activity.getDate());
         response.setTime(activity.getTime());
+        response.setEndDate(activity.getEndDate());
+        response.setEndTime(activity.getEndTime());
+        response.setRegistrationStartDate(activity.getRegistrationStartDate());
+        response.setRegistrationStartTime(activity.getRegistrationStartTime());
         response.setRegistrationEndDate(activity.getRegistrationEndDate());
         response.setRegistrationEndTime(activity.getRegistrationEndTime());
         response.setLocation(activity.getLocation());

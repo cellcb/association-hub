@@ -254,7 +254,7 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
       const activityTimeStr = activityTime || '00:00:00';
       const activityStart = new Date(`${activityDate}T${activityTimeStr}`);
       if (now >= activityStart) {
-        return { open: false, message: '活动已结束' };
+        return { open: false, message: '活动已开始' };
       }
     }
 
@@ -475,19 +475,52 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                   {/* Right Section - Content */}
                   <div className="flex-1 p-6">
                     {/* Header */}
-                    <div className="flex flex-wrap items-start gap-3 mb-4">
-                      <span className={`px-3 py-1 rounded-full text-sm ${getTypeColor(activity.type)}`}>
-                        {activityTypeLabels[activity.type] || activity.typeName}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-sm border ${getStatusColor(activity.status)}`}>
-                        {activityStatusLabels[activity.status] || activity.statusName}
-                      </span>
-                      {activity.status === 'UPCOMING' && activity.capacity && (
-                        <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-sm">
-                          {activity.registeredCount}/{activity.capacity} 已报名
-                        </span>
-                      )}
-                    </div>
+                    {(() => {
+                      const regStatus = isRegistrationOpen(
+                        activity.registrationEndDate,
+                        activity.registrationEndTime,
+                        activity.registrationStartDate,
+                        activity.registrationStartTime,
+                        activity.date,
+                        activity.time,
+                        activity.endDate,
+                        activity.endTime
+                      );
+                      // 根据实际状态确定显示
+                      let statusLabel = '';
+                      let statusColorClass = '';
+                      if (regStatus.open) {
+                        statusLabel = '报名中';
+                        statusColorClass = 'border-green-500 text-green-600 bg-green-50';
+                      } else if (regStatus.message === '报名尚未开始') {
+                        statusLabel = '即将报名';
+                        statusColorClass = 'border-blue-500 text-blue-600 bg-blue-50';
+                      } else if (regStatus.message === '报名已截止') {
+                        statusLabel = '报名已截止';
+                        statusColorClass = 'border-gray-400 text-gray-500 bg-gray-50';
+                      } else if (regStatus.message === '活动已开始') {
+                        statusLabel = '活动已开始';
+                        statusColorClass = 'border-gray-400 text-gray-500 bg-gray-50';
+                      } else {
+                        statusLabel = '活动已结束';
+                        statusColorClass = 'border-gray-400 text-gray-500 bg-gray-50';
+                      }
+                      return (
+                        <div className="flex flex-wrap items-start gap-3 mb-4">
+                          <span className={`px-3 py-1 rounded-full text-sm ${getTypeColor(activity.type)}`}>
+                            {activityTypeLabels[activity.type] || activity.typeName}
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-sm border ${statusColorClass}`}>
+                            {statusLabel}
+                          </span>
+                          {regStatus.open && activity.capacity && (
+                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-sm">
+                              {activity.registeredCount}/{activity.capacity} 已报名
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Title */}
                     <h3 className="text-xl text-gray-900 mb-3">{activity.title}</h3>
@@ -523,6 +556,17 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                         <Tag className="w-4 h-4" />
                         <span>{formatFee(activity.fee)}</span>
                       </div>
+                      {(activity.registrationStartDate || activity.registrationEndDate) && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            报名时间：
+                            {activity.registrationStartDate ? formatDate(activity.registrationStartDate) : ''}
+                            {activity.registrationStartDate && activity.registrationEndDate ? ' - ' : ''}
+                            {activity.registrationEndDate ? formatDate(activity.registrationEndDate) : ''}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Organization */}
@@ -538,10 +582,12 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                         const regStatus = isRegistrationOpen(
                           activity.registrationEndDate,
                           activity.registrationEndTime,
-                          null,
-                          null,
+                          activity.registrationStartDate,
+                          activity.registrationStartTime,
                           activity.date,
-                          activity.time
+                          activity.time,
+                          activity.endDate,
+                          activity.endTime
                         );
                         return regStatus.open ? (
                           <button
@@ -906,19 +952,45 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                   <X className="w-6 h-6" />
                 </button>
 
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                    {activityTypeLabels[selectedActivity.type] || selectedActivity.typeName}
-                  </span>
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                    {activityStatusLabels[selectedActivity.status] || selectedActivity.statusName}
-                  </span>
-                  {selectedActivity.status === 'UPCOMING' && selectedActivity.capacity && (
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
-                      {selectedActivity.registeredCount}/{selectedActivity.capacity} 已报名
-                    </span>
-                  )}
-                </div>
+                {(() => {
+                  const regStatus = isRegistrationOpen(
+                    activityDetail?.registrationEndDate || selectedActivity.registrationEndDate,
+                    activityDetail?.registrationEndTime || selectedActivity.registrationEndTime,
+                    activityDetail?.registrationStartDate || selectedActivity.registrationStartDate,
+                    activityDetail?.registrationStartTime || selectedActivity.registrationStartTime,
+                    activityDetail?.date || selectedActivity.date,
+                    activityDetail?.time || selectedActivity.time,
+                    activityDetail?.endDate || selectedActivity.endDate,
+                    activityDetail?.endTime || selectedActivity.endTime
+                  );
+                  let statusLabel = '';
+                  if (regStatus.open) {
+                    statusLabel = '报名中';
+                  } else if (regStatus.message === '报名尚未开始') {
+                    statusLabel = '即将报名';
+                  } else if (regStatus.message === '报名已截止') {
+                    statusLabel = '报名已截止';
+                  } else if (regStatus.message === '活动已开始') {
+                    statusLabel = '活动已开始';
+                  } else {
+                    statusLabel = '活动已结束';
+                  }
+                  return (
+                    <div className="flex items-start gap-3 mb-4">
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+                        {activityTypeLabels[selectedActivity.type] || selectedActivity.typeName}
+                      </span>
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+                        {statusLabel}
+                      </span>
+                      {regStatus.open && selectedActivity.capacity && (
+                        <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm">
+                          {selectedActivity.registeredCount}/{selectedActivity.capacity} 已报名
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <h1 className="text-2xl md:text-4xl mb-4 leading-tight">
                   {selectedActivity.title}
@@ -1188,12 +1260,12 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                       const regStatus = isRegistrationOpen(
                         activityDetail?.registrationEndDate || selectedActivity.registrationEndDate,
                         activityDetail?.registrationEndTime || selectedActivity.registrationEndTime,
-                        activityDetail?.registrationStartDate,
-                        activityDetail?.registrationStartTime,
+                        activityDetail?.registrationStartDate || selectedActivity.registrationStartDate,
+                        activityDetail?.registrationStartTime || selectedActivity.registrationStartTime,
                         activityDetail?.date || selectedActivity.date,
                         activityDetail?.time || selectedActivity.time,
-                        activityDetail?.endDate,
-                        activityDetail?.endTime
+                        activityDetail?.endDate || selectedActivity.endDate,
+                        activityDetail?.endTime || selectedActivity.endTime
                       );
                       return regStatus.open ? (
                         <div className="flex gap-3">
