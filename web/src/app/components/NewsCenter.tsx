@@ -9,6 +9,7 @@ export function NewsCenter() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
 
   // 数据状态
   const [newsList, setNewsList] = useState<NewsListResponse[]>([]);
@@ -92,6 +93,7 @@ export function NewsCenter() {
           size: number;
           categoryId?: number;
           keyword?: string;
+          tagId?: number;
         } = {
           page: currentPage,
           size: pageSize,
@@ -102,6 +104,9 @@ export function NewsCenter() {
         }
         if (debouncedSearchTerm) {
           params.keyword = debouncedSearchTerm;
+        }
+        if (selectedTagId !== null) {
+          params.tagId = selectedTagId;
         }
 
         const res = await getPublicNewsList(params);
@@ -122,7 +127,7 @@ export function NewsCenter() {
     };
 
     loadNews();
-  }, [currentPage, selectedCategoryId, debouncedSearchTerm]);
+  }, [currentPage, selectedCategoryId, selectedTagId, debouncedSearchTerm]);
 
   // 处理分类选择
   const handleCategorySelect = useCallback((categoryId: number | null) => {
@@ -697,7 +702,15 @@ export function NewsCenter() {
                 {tags.slice(0, 12).map((tag) => (
                   <button
                     key={tag.id}
-                    className="px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors text-sm"
+                    onClick={() => {
+                      setSelectedTagId(selectedTagId === tag.id ? null : tag.id);
+                      setCurrentPage(0);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                      selectedTagId === tag.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
                   >
                     {tag.name}
                   </button>
