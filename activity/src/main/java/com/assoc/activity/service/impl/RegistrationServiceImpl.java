@@ -17,6 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,6 +37,29 @@ public class RegistrationServiceImpl implements RegistrationService {
         // Check activity status
         if (activity.getStatus() != ActivityStatus.UPCOMING) {
             throw new BusinessException("该活动已不接受报名");
+        }
+
+        // Check registration time window
+        LocalDateTime now = LocalDateTime.now();
+
+        if (activity.getRegistrationStartDate() != null) {
+            LocalDateTime registrationStart = LocalDateTime.of(
+                    activity.getRegistrationStartDate(),
+                    activity.getRegistrationStartTime() != null ? activity.getRegistrationStartTime() : LocalTime.MIN
+            );
+            if (now.isBefore(registrationStart)) {
+                throw new BusinessException("报名尚未开始");
+            }
+        }
+
+        if (activity.getRegistrationEndDate() != null) {
+            LocalDateTime registrationEnd = LocalDateTime.of(
+                    activity.getRegistrationEndDate(),
+                    activity.getRegistrationEndTime() != null ? activity.getRegistrationEndTime() : LocalTime.MAX
+            );
+            if (now.isAfter(registrationEnd)) {
+                throw new BusinessException("报名已截止");
+            }
         }
 
         // Check capacity

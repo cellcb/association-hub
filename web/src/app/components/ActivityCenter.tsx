@@ -227,6 +227,34 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
     return (date.getMonth() + 1).toString();
   };
 
+  // 检查报名是否开放
+  const isRegistrationOpen = (
+    endDate: string | null,
+    endTime: string | null,
+    startDate?: string | null,
+    startTime?: string | null
+  ): { open: boolean; message: string } => {
+    const now = new Date();
+
+    if (startDate) {
+      const startTimeStr = startTime || '00:00:00';
+      const start = new Date(`${startDate}T${startTimeStr}`);
+      if (now < start) {
+        return { open: false, message: '报名尚未开始' };
+      }
+    }
+
+    if (endDate) {
+      const endTimeStr = endTime || '23:59:59';
+      const end = new Date(`${endDate}T${endTimeStr}`);
+      if (now > end) {
+        return { open: false, message: '报名已截止' };
+      }
+    }
+
+    return { open: true, message: '' };
+  };
+
   // 打开报名表单
   const handleRegistration = async (activity: ActivityListResponse) => {
     setSelectedActivity(activity);
@@ -484,15 +512,25 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
-                      {activity.status === 'UPCOMING' && (
-                        <button
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                          onClick={() => handleRegistration(activity)}
-                        >
-                          <span>立即报名</span>
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      )}
+                      {activity.status === 'UPCOMING' && (() => {
+                        const regStatus = isRegistrationOpen(
+                          activity.registrationEndDate,
+                          activity.registrationEndTime
+                        );
+                        return regStatus.open ? (
+                          <button
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            onClick={() => handleRegistration(activity)}
+                          >
+                            <span>立即报名</span>
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="px-6 py-2 bg-gray-200 text-gray-500 rounded-lg">
+                            {regStatus.message}
+                          </span>
+                        );
+                      })()}
                       <button
                         className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                         onClick={() => openDetailModal(activity)}
@@ -1120,20 +1158,34 @@ export function ActivityCenter({ initialActivityId }: ActivityCenterProps) {
                     )}
 
                     {/* Action Button */}
-                    {selectedActivity.status === 'UPCOMING' && (
-                      <div className="flex gap-3">
-                        <button
-                          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                          onClick={() => {
-                            closeDetailModal();
-                            handleRegistration(selectedActivity);
-                          }}
-                        >
-                          <span>立即报名</span>
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                    {selectedActivity.status === 'UPCOMING' && (() => {
+                      const regStatus = isRegistrationOpen(
+                        activityDetail?.registrationEndDate || selectedActivity.registrationEndDate,
+                        activityDetail?.registrationEndTime || selectedActivity.registrationEndTime,
+                        activityDetail?.registrationStartDate,
+                        activityDetail?.registrationStartTime
+                      );
+                      return regStatus.open ? (
+                        <div className="flex gap-3">
+                          <button
+                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                            onClick={() => {
+                              closeDetailModal();
+                              handleRegistration(selectedActivity);
+                            }}
+                          >
+                            <span>立即报名</span>
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <span className="flex-1 px-6 py-3 bg-gray-200 text-gray-500 rounded-lg text-center">
+                            {regStatus.message}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
