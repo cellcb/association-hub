@@ -113,3 +113,4 @@ upload/
 *.db
 *.sqlite
 web/dist
+*.class
