@@ -1,0 +1,22 @@
+# 环境变量文件（包含敏感信息）
+.env
+
+# 应用文件
+apps/*.jar
+apps/web/*
+!apps/web/.gitkeep
+
+# 日志文件
+logs/**/*
+!logs/**/.gitkeep
+
+# Docker 镜像文件
+images/*.tar
+
+# 临时文件和缓存
+*.tmp
+*.log
+.DS_Store
+
+# 配置文件（构建时生成）
+conf/application-prod.yml

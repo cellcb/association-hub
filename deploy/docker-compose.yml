@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: assoc
+      POSTGRES_USER: assoc
+      POSTGRES_PASSWORD: assoc
+      TZ: Asia/Shanghai
+    ports:
+      - "8005:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assoc -d assoc || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: openjdk:17-jdk-slim
+    ports:
+      - "8004:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Shanghai
+      # Database credentials (can be overridden)
+      DB_USERNAME: assoc
+      DB_PASSWORD: assoc
+      # JVM options
+      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC
+    volumes:
+      - ./apps/wp.jar:/app/app.jar
+      - ./conf/application-prod.yml:/app/config/application-prod.yml:ro
+      - appdata:/app/data
+    working_dir: /app
+    command: ["sh", "-c", "java $${JAVA_OPTS} -jar app.jar"]
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8003:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/web:/usr/share/nginx/html:ro
+      - ./conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    environment:
+      - TZ=Asia/Shanghai
+
+volumes:
+  pgdata:
+  appdata:
