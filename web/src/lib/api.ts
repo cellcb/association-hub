@@ -1,4 +1,4 @@
-import type { Result, LoginRequest, LoginResponse, MemberApplicationRequest } from '@/types/auth';
+import type { Result, LoginRequest, LoginResponse, MemberApplicationRequest, ChangePasswordRequest } from '@/types/auth';
 import type { MemberResponse, MemberRegistrationProfile } from '@/types/member';
 
 const API_BASE = '/api';
@@ -157,6 +157,16 @@ export async function getUserInfo(): Promise<Result<LoginResponse['user']>> {
  */
 export async function validateToken(): Promise<Result<boolean>> {
   return request('/iam/auth/validate');
+}
+
+/**
+ * 修改密码
+ */
+export async function changePassword(data: ChangePasswordRequest): Promise<Result<void>> {
+  return request<void>('/iam/users/me/change-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ========== Member Application API ==========

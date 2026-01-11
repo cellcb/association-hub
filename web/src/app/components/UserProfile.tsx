@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, Building2, MapPin, Calendar, Shield, Edit2, Save, X, Camera, Briefcase, Award, Globe, Users, FileText, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Building2, MapPin, Calendar, Shield, Edit2, Save, X, Camera, Briefcase, Award, Globe, Users, FileText, Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getMyMemberProfile, updateMyIndividualProfile, updateMyOrganizationProfile, getMyMemberRegistrationProfile } from '@/lib/api';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { getMyMemberProfile, updateMyIndividualProfile, updateMyOrganizationProfile, getMyMemberRegistrationProfile, changePassword } from '@/lib/api';
+import { validatePasswordChangeForm } from '@/utils/passwordUtils';
 import type { MemberResponse, IndividualMemberUpdateRequest, OrganizationMemberUpdateRequest, OrganizationType, organizationTypeLabels } from '@/types/member';
+import type { ChangePasswordRequest } from '@/types/auth';
 
 interface UserProfileProps {
   onBack?: () => void;
@@ -47,7 +50,7 @@ function arrayFieldToString(value: string | null | undefined): string {
 
 export function UserProfile({ onBack }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'professional'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'professional' | 'security'>('basic');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +69,11 @@ export function UserProfile({ onBack }: UserProfileProps) {
       // First check if user is a member via /api/iam/users/me
       const checkRes = await getMyMemberRegistrationProfile();
       if (!checkRes.success || !checkRes.data) {
-        // User is not a member
-        setError('您还不是会员');
+        // User is not a member - allow access to Security tab only
+        setMemberData(null);
         setLoading(false);
+        // Set active tab to security for non-members
+        setActiveTab('security');
         return;
       }
 
@@ -222,43 +227,242 @@ export function UserProfile({ onBack }: UserProfileProps) {
     );
   }
 
-  // Not a member state
-  if (!memberData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-gray-400" />
-          </div>
-          <h2 className="text-xl text-gray-900 mb-2">您还不是会员</h2>
-          <p className="text-gray-600 mb-6">{error || '请先申请成为会员后再访问个人中心'}</p>
-          <button
-            onClick={onBack}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            返回首页
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isIndividual = memberData.memberType === 'INDIVIDUAL';
-  const individual = memberData.individualMember;
-  const organization = memberData.organizationMember;
+  // Determine if user is a member
+  const isMember = !!memberData;
+  const isIndividual = memberData?.memberType === 'INDIVIDUAL';
+  const individual = memberData?.individualMember;
+  const organization = memberData?.organizationMember;
 
   // Tabs based on member type
-  const tabs = isIndividual
+  // Non-members only see Security tab
+  const tabs = !isMember
+    ? [
+        { id: 'security' as const, label: '账户安全', icon: Shield },
+      ]
+    : isIndividual
     ? [
         { id: 'basic' as const, label: '基本信息', icon: User },
         { id: 'contact' as const, label: '联系方式', icon: Phone },
         { id: 'professional' as const, label: '专业信息', icon: Briefcase },
+        { id: 'security' as const, label: '账户安全', icon: Shield },
       ]
     : [
         { id: 'basic' as const, label: '单位信息', icon: Building2 },
         { id: 'contact' as const, label: '联系方式', icon: Phone },
         { id: 'professional' as const, label: '业务信息', icon: FileText },
+        { id: 'security' as const, label: '账户安全', icon: Shield },
       ];
+
+  // 账户安全Tab组件
+  const AccountSecurityTab = () => {
+    const [formData, setFormData] = useState<ChangePasswordRequest>({
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    const [validation, setValidation] = useState<Record<string, string>>({});
+    const [showOldPassword, setShowOldPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // 字段变更处理
+    const handleFieldChange = (field: keyof ChangePasswordRequest, value: string) => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+      // 清除该字段的验证错误
+      if (validation[field]) {
+        setValidation(prev => ({ ...prev, [field]: '' }));
+      }
+    };
+
+    // 表单提交
+    const handleSubmit = async () => {
+      // 前端验证
+      const errors = validatePasswordChangeForm(formData);
+      if (Object.keys(errors).length > 0) {
+        setValidation(errors);
+        return;
+      }
+
+      setIsSubmitting(true);
+      setErrorMessage('');
+      try {
+        const res = await changePassword(formData);
+        if (res.success) {
+          setSuccessMessage('密码修改成功');
+          // 清空表单
+          setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+          // 5秒后自动清除成功消息
+          setTimeout(() => setSuccessMessage(''), 5000);
+        } else {
+          setErrorMessage(res.message || '密码修改失败');
+        }
+      } catch (err) {
+        setErrorMessage('网络错误，请稍后重试');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    const isFormValid =
+      formData.oldPassword &&
+      formData.newPassword &&
+      formData.confirmPassword &&
+      Object.keys(validation).length === 0;
+
+    return (
+      <div className="space-y-6">
+        {/* 标题 */}
+        <div className="flex items-center gap-3 pb-4 border-b">
+          <Shield className="w-5 h-5 text-blue-600" />
+          <div>
+            <h3 className="font-medium">账户安全</h3>
+            <p className="text-sm text-gray-500">修改登录密码，保护账户安全</p>
+          </div>
+        </div>
+
+        {/* 错误提示 */}
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-red-800">{errorMessage}</p>
+            </div>
+            <button onClick={() => setErrorMessage('')} className="text-red-600 hover:text-red-800">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* 成功提示 */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <p className="text-sm text-green-800">{successMessage}</p>
+          </div>
+        )}
+
+        {/* 密码表单 */}
+        <div className="space-y-4">
+          {/* 旧密码 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              旧密码 <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showOldPassword ? 'text' : 'password'}
+                value={formData.oldPassword}
+                onChange={(e) => handleFieldChange('oldPassword', e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg pr-10"
+                placeholder="请输入旧密码"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOldPassword(!showOldPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {validation.oldPassword && (
+              <p className="mt-1 text-sm text-red-600">{validation.oldPassword}</p>
+            )}
+          </div>
+
+          {/* 新密码 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              新密码 <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={formData.newPassword}
+                onChange={(e) => handleFieldChange('newPassword', e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg pr-10"
+                placeholder="请输入新密码（至少6位）"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {validation.newPassword && (
+              <p className="mt-1 text-sm text-red-600">{validation.newPassword}</p>
+            )}
+            {/* 密码强度指示器 */}
+            {formData.newPassword && !validation.newPassword && (
+              <div className="mt-2">
+                <PasswordStrengthIndicator password={formData.newPassword} />
+              </div>
+            )}
+          </div>
+
+          {/* 确认密码 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              确认新密码 <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg pr-10"
+                placeholder="请再次输入新密码"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {validation.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">{validation.confirmPassword}</p>
+            )}
+            {/* 密码一致提示 */}
+            {formData.confirmPassword && formData.newPassword === formData.confirmPassword && (
+              <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4" />
+                密码一致
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={handleSubmit}
+            disabled={!isFormValid || isSubmitting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSubmitting ? '修改中...' : '确认修改'}
+          </button>
+          <button
+            onClick={() => {
+              setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+              setValidation({});
+              setErrorMessage('');
+              setSuccessMessage('');
+            }}
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            重置
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -276,9 +480,10 @@ export function UserProfile({ onBack }: UserProfileProps) {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl text-gray-900 mb-2">个人中心</h1>
-            <p className="text-gray-600">查看和编辑您的{isIndividual ? '个人' : '单位'}信息</p>
+            <h1 className="text-2xl md:text-3xl text-gray-900 mb-2">{isMember ? '个人中心' : '账户设置'}</h1>
+            <p className="text-gray-600">{isMember ? `查看和编辑您的${isIndividual ? '个人' : '单位'}信息` : '管理您的账户安全设置'}</p>
           </div>
+          {isMember && (
           <div className="flex items-center gap-3">
             {isEditing ? (
               <>
@@ -309,10 +514,12 @@ export function UserProfile({ onBack }: UserProfileProps) {
               </button>
             )}
           </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Sidebar - Member Card */}
+        <div className={isMember ? "grid grid-cols-1 lg:grid-cols-3 gap-6" : "max-w-4xl mx-auto"}>
+          {/* Left Sidebar - Member Card (only for members) */}
+          {isMember && (
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
               {/* Avatar/Logo */}
@@ -367,9 +574,10 @@ export function UserProfile({ onBack }: UserProfileProps) {
               </div>
             </div>
           </div>
+          )}
 
           {/* Right Content - Detailed Info */}
-          <div className="lg:col-span-2">
+          <div className={isMember ? "lg:col-span-2" : ""}>
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               {/* Tabs */}
               <div className="border-b border-gray-200">
@@ -393,7 +601,10 @@ export function UserProfile({ onBack }: UserProfileProps) {
 
               {/* Tab Content */}
               <div className="p-6">
-                {isIndividual ? (
+                {!isMember ? (
+                  // Non-member: Only Security Tab
+                  <AccountSecurityTab />
+                ) : isIndividual ? (
                   // Individual Member Tabs
                   <>
                     {activeTab === 'basic' && (
@@ -420,6 +631,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                         onChange={handleInputChange}
                       />
                     )}
+                    {activeTab === 'security' && <AccountSecurityTab />}
                   </>
                 ) : (
                   // Organization Member Tabs
@@ -448,6 +660,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                         onChange={handleInputChange}
                       />
                     )}
+                    {activeTab === 'security' && <AccountSecurityTab />}
                   </>
                 )}
               </div>

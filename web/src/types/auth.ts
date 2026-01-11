@@ -134,3 +134,32 @@ export interface ApplicationStatusResponse {
   reviewedAt?: string;
   rejectReason?: string;
 }
+
+/**
+ * 密码强度等级
+ */
+export type PasswordStrengthLevel =
+  | 'VERY_WEAK'  // 极弱 (0-2分)
+  | 'WEAK'       // 弱 (3-4分)
+  | 'MEDIUM'     // 中等 (5-6分)
+  | 'STRONG'     // 强 (7-8分)
+  | 'VERY_STRONG'; // 极强 (9+分)
+
+/**
+ * 密码强度信息
+ */
+export interface PasswordStrengthInfo {
+  level: PasswordStrengthLevel;
+  score: number; // 0-100 显示用百分比
+  description: string; // 中文描述：极弱/弱/中等/强/极强
+  suggestions: string[]; // 改进建议数组
+}
+
+/**
+ * 修改密码请求
+ */
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
