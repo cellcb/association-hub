@@ -48,9 +48,9 @@ public class RagService {
     private int maxHistoryMessages;
 
     private static final String SYSTEM_PROMPT = """
-            你是一个专业的知识助手。请基于提供的参考资料回答用户的问题。
-            如果参考资料中没有相关信息，请诚实地说明。
-            回答要简洁、准确，使用中文回答。
+            你是一个专业的知识助手，基于参考资料回答问题。
+            如果参考资料中没有相关信息，诚实说明。
+            使用中文回答。
             """;
 
     private static final String RAG_USER_TEMPLATE = """

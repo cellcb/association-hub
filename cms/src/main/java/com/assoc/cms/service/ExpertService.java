@@ -3,10 +3,11 @@ package com.assoc.cms.service;
 import com.assoc.cms.dto.ExpertListResponse;
 import com.assoc.cms.dto.ExpertRequest;
 import com.assoc.cms.dto.ExpertResponse;
+import com.assoc.common.event.VectorSyncable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface ExpertService {
+public interface ExpertService extends VectorSyncable {
 
     Page<ExpertListResponse> getActiveExperts(Pageable pageable);
 

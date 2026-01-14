@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -228,6 +229,15 @@ public class ExpertServiceImpl implements ExpertService {
         fields.put("projects", nullToEmpty(expert.getProjects()));
         fields.put("publications", nullToEmpty(expert.getPublications()));
         fields.put("researchAreas", nullToEmpty(expert.getResearchAreas()));
+        fields.put("organization", nullToEmpty(expert.getOrganization()));
+        fields.put("location", nullToEmpty(expert.getLocation()));
+        fields.put("awards", nullToEmpty(expert.getAwards()));
+        if (expert.getExpertiseFields() != null && !expert.getExpertiseFields().isEmpty()) {
+            String fieldNames = expert.getExpertiseFields().stream()
+                .map(ExpertiseField::getName)
+                .collect(Collectors.joining(" "));
+            fields.put("expertiseFields", fieldNames);
+        }
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("name", expert.getName());
@@ -245,5 +255,19 @@ public class ExpertServiceImpl implements ExpertService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    @Override
+    public String getEntityType() {
+        return "expert";
+    }
+
+    @Override
+    public int resyncVectors() {
+        List<Expert> allExperts = expertRepository.findAll();
+        for (Expert expert : allExperts) {
+            publishVectorizeEvent(expert, VectorizeEvent.EventAction.UPSERT);
+        }
+        return allExperts.size();
     }
 }

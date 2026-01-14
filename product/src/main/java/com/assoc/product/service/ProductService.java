@@ -1,12 +1,13 @@
 package com.assoc.product.service;
 
+import com.assoc.common.event.VectorSyncable;
 import com.assoc.product.dto.ProductListResponse;
 import com.assoc.product.dto.ProductRequest;
 import com.assoc.product.dto.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface ProductService {
+public interface ProductService extends VectorSyncable {
 
     Page<ProductListResponse> getPublishedProducts(Pageable pageable);
 

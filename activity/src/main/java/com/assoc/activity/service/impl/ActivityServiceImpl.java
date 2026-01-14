@@ -248,6 +248,9 @@ public class ActivityServiceImpl implements ActivityService {
         fields.put("venue", nullToEmpty(activity.getVenue()));
         fields.put("organization", nullToEmpty(activity.getOrganization()));
         fields.put("location", nullToEmpty(activity.getLocation()));
+        if (activity.getType() != null) {
+            fields.put("typeName", getTypeName(activity.getType()));
+        }
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("title", activity.getTitle());
@@ -267,5 +270,19 @@ public class ActivityServiceImpl implements ActivityService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    @Override
+    public String getEntityType() {
+        return "activity";
+    }
+
+    @Override
+    public int resyncVectors() {
+        List<Activity> allActivities = activityRepository.findAll();
+        for (Activity activity : allActivities) {
+            publishVectorizeEvent(activity, VectorizeEvent.EventAction.UPSERT);
+        }
+        return allActivities.size();
     }
 }

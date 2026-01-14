@@ -3,10 +3,11 @@ package com.assoc.cms.service;
 import com.assoc.cms.dto.NewsListResponse;
 import com.assoc.cms.dto.NewsRequest;
 import com.assoc.cms.dto.NewsResponse;
+import com.assoc.common.event.VectorSyncable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface NewsService {
+public interface NewsService extends VectorSyncable {
 
     Page<NewsListResponse> getPublishedNews(Pageable pageable);
 

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -208,6 +209,11 @@ public class ProjectServiceImpl implements ProjectService {
         fields.put("highlights", nullToEmpty(project.getHighlights()));
         fields.put("technicalFeatures", nullToEmpty(project.getTechnicalFeatures()));
         fields.put("achievements", nullToEmpty(project.getAchievements()));
+        fields.put("location", nullToEmpty(project.getLocation()));
+        fields.put("owner", nullToEmpty(project.getOwner()));
+        fields.put("designer", nullToEmpty(project.getDesigner()));
+        fields.put("contractor", nullToEmpty(project.getContractor()));
+        fields.put("scale", nullToEmpty(project.getScale()));
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("title", project.getTitle());
@@ -227,5 +233,19 @@ public class ProjectServiceImpl implements ProjectService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    @Override
+    public String getEntityType() {
+        return "project";
+    }
+
+    @Override
+    public int resyncVectors() {
+        List<Project> allProjects = projectRepository.findAll();
+        for (Project project : allProjects) {
+            publishVectorizeEvent(project, VectorizeEvent.EventAction.UPSERT);
+        }
+        return allProjects.size();
     }
 }

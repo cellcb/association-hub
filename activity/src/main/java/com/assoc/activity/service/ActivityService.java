@@ -5,10 +5,11 @@ import com.assoc.activity.dto.ActivityRequest;
 import com.assoc.activity.dto.ActivityResponse;
 import com.assoc.activity.entity.ActivityStatus;
 import com.assoc.activity.entity.ActivityType;
+import com.assoc.common.event.VectorSyncable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface ActivityService {
+public interface ActivityService extends VectorSyncable {
 
     Page<ActivityListResponse> getActiveActivities(Pageable pageable);
 

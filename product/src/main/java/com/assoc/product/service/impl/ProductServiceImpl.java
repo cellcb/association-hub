@@ -225,6 +225,9 @@ public class ProductServiceImpl implements ProductService {
         fields.put("features", nullToEmpty(product.getFeatures()));
         fields.put("application", nullToEmpty(product.getApplication()));
         fields.put("specifications", nullToEmpty(product.getSpecifications()));
+        fields.put("manufacturer", nullToEmpty(product.getManufacturer()));
+        fields.put("model", nullToEmpty(product.getModel()));
+        fields.put("certifications", nullToEmpty(product.getCertifications()));
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("name", product.getName());
@@ -244,5 +247,19 @@ public class ProductServiceImpl implements ProductService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    @Override
+    public String getEntityType() {
+        return "product";
+    }
+
+    @Override
+    public int resyncVectors() {
+        java.util.List<Product> allProducts = productRepository.findAll();
+        for (Product product : allProducts) {
+            publishVectorizeEvent(product, VectorizeEvent.EventAction.UPSERT);
+        }
+        return allProducts.size();
     }
 }

@@ -4,10 +4,11 @@ import com.assoc.cms.dto.ProjectListResponse;
 import com.assoc.cms.dto.ProjectRequest;
 import com.assoc.cms.dto.ProjectResponse;
 import com.assoc.cms.entity.ProjectCategory;
+import com.assoc.common.event.VectorSyncable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface ProjectService {
+public interface ProjectService extends VectorSyncable {
 
     Page<ProjectListResponse> getPublishedProjects(Pageable pageable);
 

@@ -288,6 +288,13 @@ public class NewsServiceImpl implements NewsService {
         fields.put("title", nullToEmpty(news.getTitle()));
         fields.put("excerpt", nullToEmpty(news.getExcerpt()));
         fields.put("content", nullToEmpty(news.getContent()));
+        fields.put("author", nullToEmpty(news.getAuthor()));
+        if (news.getTags() != null && !news.getTags().isEmpty()) {
+            String tagNames = news.getTags().stream()
+                .map(Tag::getName)
+                .collect(Collectors.joining(" "));
+            fields.put("tags", tagNames);
+        }
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("title", news.getTitle());
@@ -306,5 +313,19 @@ public class NewsServiceImpl implements NewsService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    @Override
+    public String getEntityType() {
+        return "news";
+    }
+
+    @Override
+    public int resyncVectors() {
+        List<News> allNews = newsRepository.findAll();
+        for (News news : allNews) {
+            publishVectorizeEvent(news, VectorizeEvent.EventAction.UPSERT);
+        }
+        return allNews.size();
     }
 }
