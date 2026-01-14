@@ -4,7 +4,11 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getPublicNewsList, getPublicNewsById, getNewsCategories, getTags, incrementNewsViews, likeNews } from '@/lib/api';
 import type { NewsListResponse, NewsResponse, NewsCategoryResponse, TagResponse } from '@/types/news';
 
-export function NewsCenter() {
+interface NewsCenterProps {
+  initialNewsId?: number;
+}
+
+export function NewsCenter({ initialNewsId }: NewsCenterProps) {
   // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -163,6 +167,13 @@ export function NewsCenter() {
       setLoadingDetail(false);
     }
   };
+
+  // Handle initial news ID from URL deep link
+  useEffect(() => {
+    if (initialNewsId && !loading) {
+      handleReadArticle(initialNewsId);
+    }
+  }, [initialNewsId, loading]);
 
   // 点赞文章
   const handleLikeArticle = async (articleId: number) => {

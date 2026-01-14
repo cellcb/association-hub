@@ -13,7 +13,11 @@ function safeParseJson<T>(jsonStr: string | null | undefined, defaultValue: T): 
   }
 }
 
-export function ExpertDirectory() {
+interface ExpertDirectoryProps {
+  initialExpertId?: number;
+}
+
+export function ExpertDirectory({ initialExpertId }: ExpertDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
@@ -85,6 +89,13 @@ export function ExpertDirectory() {
   useEffect(() => {
     loadExperts();
   }, [loadExperts]);
+
+  // Handle initial expert ID from URL deep link
+  useEffect(() => {
+    if (initialExpertId && !loading) {
+      handleViewExpert(initialExpertId);
+    }
+  }, [initialExpertId, loading]);
 
   // 选择专业领域时重置分页
   const handleFieldSelect = (fieldId: number | null) => {

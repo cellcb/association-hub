@@ -27,6 +27,7 @@ import { PageType, NavigationParams } from '../App';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Carousel } from './Carousel';
 import { MembershipApplicationModal } from './auth/MembershipApplicationModal';
+import { AiSearch } from './AiSearch';
 import { useState, useMemo } from 'react';
 import { useSiteConfig } from '@/contexts/SiteConfigContext';
 import type {
@@ -224,6 +225,9 @@ export function Home({ onNavigate }: HomeProps) {
           </div>
         </div>
       </section>
+
+      {/* AI Search Section */}
+      <AiSearch onNavigate={onNavigate} />
 
       {/* Stats Section - Enhanced */}
       <section className="py-16 bg-white">

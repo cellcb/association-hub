@@ -15,7 +15,11 @@ const categoryOptions: { label: string; value: ProjectCategory | null }[] = [
   { label: '既有建筑改造', value: 'RENOVATION' },
 ];
 
-export function ProjectShowcase() {
+interface ProjectShowcaseProps {
+  initialProjectId?: number;
+}
+
+export function ProjectShowcase({ initialProjectId }: ProjectShowcaseProps) {
   // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -93,6 +97,13 @@ export function ProjectShowcase() {
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
+
+  // Handle initial project ID from URL deep link
+  useEffect(() => {
+    if (initialProjectId && !loading) {
+      handleViewDetail(initialProjectId);
+    }
+  }, [initialProjectId, loading]);
 
   // 加载项目详情
   const handleViewDetail = async (id: number) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import 'react-quill/dist/quill.snow.css';
 import { Home } from './components/Home';
 import { NewsCenter } from './components/NewsCenter';
@@ -18,12 +18,51 @@ export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' |
 
 export interface NavigationParams {
   activityId?: number;
+  newsId?: number;
+  expertId?: number;
+  projectId?: number;
+  productId?: number;
 }
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [navParams, setNavParams] = useState<NavigationParams>({});
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Handle URL parameters for deep linking (e.g., /activities?activityId=3)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname.replace('/', '');
+
+    if (path && path !== 'home') {
+      const pageMap: Record<string, PageType> = {
+        activities: 'activities',
+        news: 'news',
+        experts: 'experts',
+        projects: 'projects',
+        products: 'products',
+      };
+      const page = pageMap[path];
+      if (page) {
+        setCurrentPage(page);
+        // Parse all possible ID parameters
+        const navParams: NavigationParams = {};
+        const activityId = params.get('activityId');
+        const newsId = params.get('newsId');
+        const expertId = params.get('expertId');
+        const projectId = params.get('projectId');
+        const productId = params.get('productId');
+
+        if (activityId) navParams.activityId = parseInt(activityId, 10);
+        if (newsId) navParams.newsId = parseInt(newsId, 10);
+        if (expertId) navParams.expertId = parseInt(expertId, 10);
+        if (projectId) navParams.projectId = parseInt(projectId, 10);
+        if (productId) navParams.productId = parseInt(productId, 10);
+
+        setNavParams(navParams);
+      }
+    }
+  }, []);
 
   const handleNavigate = (page: PageType, params?: NavigationParams) => {
     setCurrentPage(page);
@@ -39,15 +78,15 @@ function AppContent() {
       case 'home':
         return <Home onNavigate={handleNavigate} />;
       case 'news':
-        return <NewsCenter />;
+        return <NewsCenter initialNewsId={navParams.newsId} />;
       case 'experts':
-        return <ExpertDirectory />;
+        return <ExpertDirectory initialExpertId={navParams.expertId} />;
       case 'projects':
-        return <ProjectShowcase />;
+        return <ProjectShowcase initialProjectId={navParams.projectId} />;
       case 'activities':
         return <ActivityCenter initialActivityId={navParams.activityId} />;
       case 'products':
-        return <ProductCatalog />;
+        return <ProductCatalog initialProductId={navParams.productId} />;
       case 'profile':
         return <UserProfile />;
       case 'my-registrations':

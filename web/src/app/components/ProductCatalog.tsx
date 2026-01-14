@@ -20,7 +20,11 @@ const getFirstImage = (imagesJson: string | null): string | null => {
   return images.length > 0 ? images[0] : null;
 };
 
-export function ProductCatalog() {
+interface ProductCatalogProps {
+  initialProductId?: number;
+}
+
+export function ProductCatalog({ initialProductId }: ProductCatalogProps) {
   // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -109,6 +113,13 @@ export function ProductCatalog() {
 
     loadProducts();
   }, [currentPage, selectedCategoryId, debouncedSearchTerm]);
+
+  // Handle initial product ID from URL deep link
+  useEffect(() => {
+    if (initialProductId && !loading) {
+      handleViewProduct(initialProductId);
+    }
+  }, [initialProductId, loading]);
 
   // 处理分类选择
   const handleCategorySelect = useCallback((categoryId: number | null) => {
