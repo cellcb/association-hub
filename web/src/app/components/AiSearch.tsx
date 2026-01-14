@@ -14,6 +14,7 @@ import {
   User,
   Bot,
   Send,
+  ChevronUp,
 } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { publicRagChat, RagReference, getEntityTypeStyle } from '@/lib/rag';
@@ -148,6 +149,7 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [currentReferences, setCurrentReferences] = useState<RagReference[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -243,6 +245,7 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
+    setIsExpanded(true);
     // Use setTimeout to ensure query state is set before search
     setTimeout(() => doSearch(suggestion), 0);
   };
@@ -280,10 +283,18 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
   const hasConversation = messages.length > 0 || status !== 'idle';
 
   return (
-    <section className="py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className={`${
+      isExpanded
+        ? 'fixed inset-0 top-16 z-40 bg-gradient-to-br from-indigo-50 via-white to-blue-50'
+        : 'py-12 bg-gradient-to-br from-indigo-50 via-white to-blue-50'
+    }`}>
+      <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 ${
+        isExpanded ? 'h-full flex flex-col py-4' : ''
+      }`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className={`flex items-center justify-between ${
+          isExpanded ? 'flex-shrink-0 mb-4' : 'mb-6'
+        }`}>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
@@ -308,8 +319,20 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
         {hasConversation && (
           <div
             ref={chatContainerRef}
-            className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-4 max-h-96 overflow-y-auto"
+            className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-y-auto transition-all duration-300 ease-in-out relative ${
+              isExpanded ? 'flex-1 min-h-0' : 'max-h-96 mb-4'
+            }`}
           >
+            {/* Collapse Button */}
+            {isExpanded && (
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="absolute top-3 right-3 z-10 p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
+                title="收起对话"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+            )}
             <div className="p-6 space-y-6">
               {/* Message History */}
               {messages.map((msg, index) => (
@@ -427,7 +450,9 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
 
 
         {/* Search Input */}
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 focus-within:border-indigo-400 transition-colors">
+        <div className={`bg-white rounded-2xl shadow-lg border-2 border-gray-200 focus-within:border-indigo-400 transition-colors ${
+          isExpanded ? 'flex-shrink-0 mt-4' : ''
+        }`}>
           <div className="flex items-center p-2">
             <div className="flex-shrink-0 pl-3">
               <Search className="w-5 h-5 text-gray-400" />
@@ -437,6 +462,7 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onFocus={() => hasConversation && setIsExpanded(true)}
               placeholder={hasConversation ? '继续提问...' : '输入您的问题，如"最近有什么活动？"'}
               className="flex-1 px-4 py-3 text-gray-900 placeholder-gray-400 outline-none bg-transparent"
               disabled={status === 'loading' || status === 'streaming'}
@@ -456,7 +482,9 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
         </div>
 
         {/* Suggestions */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className={`mt-4 flex flex-wrap items-center gap-2 ${
+          isExpanded ? 'flex-shrink-0' : ''
+        }`}>
           <span className="text-sm text-gray-500 flex items-center gap-1">
             <Sparkles className="w-4 h-4" />
             {hasConversation ? '可以追问：' : '试试问：'}
