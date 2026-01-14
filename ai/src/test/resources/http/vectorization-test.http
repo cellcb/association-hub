@@ -1,0 +1,95 @@
+### 向量化测试 API
+### 测试实体 CRUD 操作触发向量化
+
+### 环境变量
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### ===== 认证 =====
+
+### 登录获取 Token
+# @name login
+POST {{baseUrl}}/api/iam/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+> {%
+    client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### ===== 活动向量化测试 =====
+
+### 获取活动列表
+GET {{baseUrl}}/api/admin/activities?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+### 获取活动详情
+GET {{baseUrl}}/api/admin/activities/3
+Authorization: Bearer {{accessToken}}
+
+### 创建活动 (触发向量化)
+# @name createActivity
+POST {{baseUrl}}/api/admin/activities
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "2026年人工智能应用大会",
+  "type": "CONFERENCE",
+  "date": "2026-05-20",
+  "time": "09:00:00",
+  "endDate": "2026-05-21",
+  "endTime": "17:00:00",
+  "location": "深圳会展中心",
+  "status": "UPCOMING",
+  "description": "<p>本次大会聚焦人工智能在各行业的创新应用，涵盖大模型、智能制造、自动驾驶等前沿领域。</p>",
+  "detailedDescription": "<p>大会亮点：1. AI大模型技术分享；2. 智能制造案例展示；3. 自动驾驶技术演进；4. AI伦理与治理研讨。</p>",
+  "organization": "中国人工智能学会",
+  "capacity": 500
+}
+
+> {%
+    client.global.set("newActivityId", response.body.data.id);
+%}
+
+### 更新活动 (触发向量化)
+PUT {{baseUrl}}/api/admin/activities/3
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "2026年度技术创新研讨会",
+  "type": "SEMINAR",
+  "date": "2026-02-15",
+  "time": "09:00:00",
+  "endDate": "2026-02-15",
+  "endTime": "17:00:00",
+  "location": "广州国际会议中心",
+  "status": "UPCOMING",
+  "description": "<p>本次研讨会将汇聚行业专家，共同探讨建筑领域最新技术创新和发展趋势。</p>",
+  "detailedDescription": "<p>研讨会主题包括：绿色建筑设计理念、智能建造技术应用、新型建筑材料研发、建筑行业数字化转型。</p>",
+  "organization": "广东省土木建筑学会",
+  "capacity": 200
+}
+
+### 删除活动 (触发删除向量)
+DELETE {{baseUrl}}/api/admin/activities/{{newActivityId}}
+Authorization: Bearer {{accessToken}}
+
+### ===== 验证向量化结果 =====
+
+### 查询向量统计
+GET {{baseUrl}}/api/admin/vectors/stats
+Authorization: Bearer {{accessToken}}
+
+### 搜索验证 - 搜索刚创建的活动内容
+GET {{baseUrl}}/api/rag/search?query=人工智能大模型&types=activity&topK=5
+Authorization: Bearer {{accessToken}}
+
+### 搜索验证 - 搜索更新后的活动
+GET {{baseUrl}}/api/rag/search?query=绿色建筑设计&types=activity&topK=5
+Authorization: Bearer {{accessToken}}

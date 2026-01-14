@@ -12,16 +12,20 @@ import com.assoc.cms.repository.NewsCategoryRepository;
 import com.assoc.cms.repository.NewsRepository;
 import com.assoc.cms.repository.TagRepository;
 import com.assoc.cms.service.NewsService;
+import com.assoc.common.event.VectorizeEvent;
 import com.assoc.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +37,7 @@ public class NewsServiceImpl implements NewsService {
     private final NewsRepository newsRepository;
     private final NewsCategoryRepository newsCategoryRepository;
     private final TagRepository tagRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int STATUS_PUBLISHED = 1;
     private static final int STATUS_DRAFT = 0;
@@ -130,6 +135,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         news = newsRepository.save(news);
+        publishVectorizeEvent(news, VectorizeEvent.EventAction.UPSERT);
         return toResponse(news);
     }
 
@@ -170,6 +176,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         news = newsRepository.save(news);
+        publishVectorizeEvent(news, VectorizeEvent.EventAction.UPSERT);
         return toResponse(news);
     }
 
@@ -182,6 +189,11 @@ public class NewsServiceImpl implements NewsService {
             news.getTags().forEach(tag -> tagRepository.decrementUsageCount(tag.getId()));
         }
         newsRepository.delete(news);
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("news")
+                .entityId(id)
+                .action(VectorizeEvent.EventAction.DELETE)
+                .build());
     }
 
     @Override
@@ -269,5 +281,30 @@ public class NewsServiceImpl implements NewsService {
         response.setName(tag.getName());
         response.setUsageCount(tag.getUsageCount());
         return response;
+    }
+
+    private void publishVectorizeEvent(News news, VectorizeEvent.EventAction action) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("title", nullToEmpty(news.getTitle()));
+        fields.put("excerpt", nullToEmpty(news.getExcerpt()));
+        fields.put("content", nullToEmpty(news.getContent()));
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("title", news.getTitle());
+        if (news.getCategory() != null) {
+            metadata.put("categoryName", news.getCategory().getName());
+        }
+
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("news")
+                .entityId(news.getId())
+                .action(action)
+                .fields(fields)
+                .metadata(metadata)
+                .build());
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 }

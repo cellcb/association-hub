@@ -8,14 +8,18 @@ import com.assoc.activity.entity.ActivityStatus;
 import com.assoc.activity.entity.ActivityType;
 import com.assoc.activity.repository.ActivityRepository;
 import com.assoc.activity.service.ActivityService;
+import com.assoc.common.event.VectorizeEvent;
 import com.assoc.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ import java.util.List;
 public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityRepository activityRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final List<ActivityStatus> ACTIVE_STATUSES = List.of(
             ActivityStatus.UPCOMING, ActivityStatus.ONGOING
@@ -77,6 +82,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setRegisteredCount(0);
 
         activity = activityRepository.save(activity);
+        publishVectorizeEvent(activity, VectorizeEvent.EventAction.UPSERT);
         return toResponse(activity);
     }
 
@@ -92,6 +98,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         activity = activityRepository.save(activity);
+        publishVectorizeEvent(activity, VectorizeEvent.EventAction.UPSERT);
         return toResponse(activity);
     }
 
@@ -102,6 +109,11 @@ public class ActivityServiceImpl implements ActivityService {
             throw new ResourceNotFoundException("活动不存在: " + id);
         }
         activityRepository.deleteById(id);
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("activity")
+                .entityId(id)
+                .action(VectorizeEvent.EventAction.DELETE)
+                .build());
     }
 
     @Override
@@ -222,5 +234,38 @@ public class ActivityServiceImpl implements ActivityService {
             case ENDED -> "已结束";
             case CANCELLED -> "已取消";
         };
+    }
+
+    private void publishVectorizeEvent(Activity activity, VectorizeEvent.EventAction action) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("title", nullToEmpty(activity.getTitle()));
+        fields.put("description", nullToEmpty(activity.getDescription()));
+        fields.put("detailedDescription", nullToEmpty(activity.getDetailedDescription()));
+        fields.put("speaker", nullToEmpty(activity.getSpeaker()));
+        fields.put("speakerBio", nullToEmpty(activity.getSpeakerBio()));
+        fields.put("agenda", nullToEmpty(activity.getAgenda()));
+        fields.put("benefits", nullToEmpty(activity.getBenefits()));
+        fields.put("venue", nullToEmpty(activity.getVenue()));
+        fields.put("organization", nullToEmpty(activity.getOrganization()));
+        fields.put("location", nullToEmpty(activity.getLocation()));
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("title", activity.getTitle());
+        if (activity.getType() != null) {
+            metadata.put("type", activity.getType().name());
+            metadata.put("typeName", getTypeName(activity.getType()));
+        }
+
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("activity")
+                .entityId(activity.getId())
+                .action(action)
+                .fields(fields)
+                .metadata(metadata)
+                .build());
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 }

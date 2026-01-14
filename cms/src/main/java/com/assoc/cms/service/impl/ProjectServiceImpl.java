@@ -7,12 +7,17 @@ import com.assoc.cms.entity.Project;
 import com.assoc.cms.entity.ProjectCategory;
 import com.assoc.cms.repository.ProjectRepository;
 import com.assoc.cms.service.ProjectService;
+import com.assoc.common.event.VectorizeEvent;
 import com.assoc.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int STATUS_PUBLISHED = 1;
     private static final int STATUS_DRAFT = 0;
@@ -79,6 +85,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setViews(0);
 
         project = projectRepository.save(project);
+        publishVectorizeEvent(project, VectorizeEvent.EventAction.UPSERT);
         return toResponse(project);
     }
 
@@ -94,6 +101,7 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         project = projectRepository.save(project);
+        publishVectorizeEvent(project, VectorizeEvent.EventAction.UPSERT);
         return toResponse(project);
     }
 
@@ -104,6 +112,11 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ResourceNotFoundException("项目不存在: " + id);
         }
         projectRepository.deleteById(id);
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("project")
+                .entityId(id)
+                .action(VectorizeEvent.EventAction.DELETE)
+                .build());
     }
 
     private void mapRequestToEntity(ProjectRequest request, Project project) {
@@ -184,5 +197,35 @@ public class ProjectServiceImpl implements ProjectService {
             case PREFABRICATED -> "装配式建筑";
             case RENOVATION -> "既有建筑改造";
         };
+    }
+
+    private void publishVectorizeEvent(Project project, VectorizeEvent.EventAction action) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("title", nullToEmpty(project.getTitle()));
+        fields.put("description", nullToEmpty(project.getDescription()));
+        fields.put("background", nullToEmpty(project.getBackground()));
+        fields.put("designConcept", nullToEmpty(project.getDesignConcept()));
+        fields.put("highlights", nullToEmpty(project.getHighlights()));
+        fields.put("technicalFeatures", nullToEmpty(project.getTechnicalFeatures()));
+        fields.put("achievements", nullToEmpty(project.getAchievements()));
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("title", project.getTitle());
+        if (project.getCategory() != null) {
+            metadata.put("category", project.getCategory().name());
+            metadata.put("categoryName", getCategoryName(project.getCategory()));
+        }
+
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("project")
+                .entityId(project.getId())
+                .action(action)
+                .fields(fields)
+                .metadata(metadata)
+                .build());
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 }

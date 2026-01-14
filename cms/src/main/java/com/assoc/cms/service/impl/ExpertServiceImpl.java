@@ -9,14 +9,18 @@ import com.assoc.cms.entity.ExpertiseField;
 import com.assoc.cms.repository.ExpertRepository;
 import com.assoc.cms.repository.ExpertiseFieldRepository;
 import com.assoc.cms.service.ExpertService;
+import com.assoc.common.event.VectorizeEvent;
 import com.assoc.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,6 +31,7 @@ public class ExpertServiceImpl implements ExpertService {
 
     private final ExpertRepository expertRepository;
     private final ExpertiseFieldRepository expertiseFieldRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int STATUS_ACTIVE = 1;
     private static final int STATUS_INACTIVE = 0;
@@ -85,6 +90,7 @@ public class ExpertServiceImpl implements ExpertService {
         }
 
         expert = expertRepository.save(expert);
+        publishVectorizeEvent(expert, VectorizeEvent.EventAction.UPSERT);
         return toResponse(expert);
     }
 
@@ -106,6 +112,7 @@ public class ExpertServiceImpl implements ExpertService {
         }
 
         expert = expertRepository.save(expert);
+        publishVectorizeEvent(expert, VectorizeEvent.EventAction.UPSERT);
         return toResponse(expert);
     }
 
@@ -116,6 +123,11 @@ public class ExpertServiceImpl implements ExpertService {
             throw new ResourceNotFoundException("专家不存在: " + id);
         }
         expertRepository.deleteById(id);
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("expert")
+                .entityId(id)
+                .action(VectorizeEvent.EventAction.DELETE)
+                .build());
     }
 
     private void mapRequestToEntity(ExpertRequest request, Expert expert) {
@@ -203,5 +215,35 @@ public class ExpertServiceImpl implements ExpertService {
         response.setSortOrder(field.getSortOrder());
         response.setStatus(field.getStatus());
         return response;
+    }
+
+    private void publishVectorizeEvent(Expert expert, VectorizeEvent.EventAction action) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("name", nullToEmpty(expert.getName()));
+        fields.put("title", nullToEmpty(expert.getTitle()));
+        fields.put("bio", nullToEmpty(expert.getBio()));
+        fields.put("achievements", nullToEmpty(expert.getAchievements()));
+        fields.put("education", nullToEmpty(expert.getEducation()));
+        fields.put("experience", nullToEmpty(expert.getExperience()));
+        fields.put("projects", nullToEmpty(expert.getProjects()));
+        fields.put("publications", nullToEmpty(expert.getPublications()));
+        fields.put("researchAreas", nullToEmpty(expert.getResearchAreas()));
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("name", expert.getName());
+        metadata.put("title", expert.getTitle());
+        metadata.put("organization", expert.getOrganization());
+
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("expert")
+                .entityId(expert.getId())
+                .action(action)
+                .fields(fields)
+                .metadata(metadata)
+                .build());
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 }

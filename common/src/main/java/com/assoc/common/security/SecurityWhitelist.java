@@ -51,7 +51,10 @@ public class SecurityWhitelist {
                             "/api/iam/users/me/**",  // 用户个人档案（自服务接口）
                             "/api/kb/documents/search/external",
                             "/api/kb/documents/search/rag",
-                            "/api/kb/documents/search/rag/stream"
+                            "/api/kb/documents/search/rag/stream",
+                            // AI RAG endpoints - authenticated but permission exempt
+                            "/api/rag/**",
+                            "/api/admin/vectors/**"
                     )
             )
             .distinct()

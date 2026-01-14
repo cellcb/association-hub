@@ -7,16 +7,16 @@ spring:
       api-key: 155d5cb5-6b83-4d52-8be8-eb795c72ad44
       chat:
         completions-path: /chat/completions
+        options:
+          model: ${KB_RAG_MODEL:deepseek-v3-1-250821}
+          temperature: ${KB_RAG_TEMPERATURE:0.2}
+      embedding:
+        enabled: false
     chat:
       memory:
         jdbc:
           # Custom table managed by project Flyway; disable default schema init.
           initialize-schema: never
-    options:
-      model: deepseek-v3-1-250821
-      temperature: ${KB_RAG_TEMPERATURE:0.2}
-    embedding:
-      enabled: false
   data:
     elasticsearch:
       repositories:
@@ -77,10 +77,17 @@ server:
     include-message: on_param
   servlet:
     context-path: ${CONTEXT_PATH:}
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-request: true
+      force-response: true
   # Tomcat configuration for large file uploads
   tomcat:
     max-swallow-size: ${KB_REQUEST_MAX_SIZE:104857600} # 100MB
     max-http-form-post-size: ${KB_REQUEST_MAX_SIZE:104857600}
+    uri-encoding: UTF-8
 
 # JWT Configuration
 jwt:

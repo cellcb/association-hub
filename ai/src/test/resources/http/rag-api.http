@@ -1,0 +1,141 @@
+### RAG API 测试
+### 使用 IntelliJ IDEA HTTP Client 运行
+
+### 环境变量
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### ===== 认证 =====
+
+### 登录获取 Token
+# @name login
+POST {{baseUrl}}/api/iam/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+> {%
+    client.global.set("accessToken", response.body.data.accessToken);
+    client.global.set("refreshToken", response.body.data.refreshToken);
+%}
+
+### ===== RAG 搜索 API =====
+
+### 语义搜索 - 基础查询
+GET {{baseUrl}}/api/rag/search?query=绿色建筑设计&topK=5
+Authorization: Bearer {{accessToken}}
+
+### 语义搜索 - 指定实体类型
+GET {{baseUrl}}/api/rag/search?query=技术创新&types=activity&topK=10
+Authorization: Bearer {{accessToken}}
+
+### 语义搜索 - 多实体类型
+GET {{baseUrl}}/api/rag/search?query=研讨会&types=activity,news,project&topK=10
+Authorization: Bearer {{accessToken}}
+
+### 语义搜索 - 产品相关
+GET {{baseUrl}}/api/rag/search?query=智能建造&types=product&topK=5
+Authorization: Bearer {{accessToken}}
+
+### 语义搜索 - 专家相关
+GET {{baseUrl}}/api/rag/search?query=建筑专家&types=expert&topK=5
+Authorization: Bearer {{accessToken}}
+
+### ===== RAG 问答 API =====
+
+### RAG 问答 - 同步响应
+POST {{baseUrl}}/api/rag/chat/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "有哪些关于绿色建筑的活动？",
+  "types": ["activity"],
+  "topK": 5
+}
+
+### RAG 问答 - 流式响应 (SSE)
+POST {{baseUrl}}/api/rag/chat
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+Accept: text/event-stream
+
+{
+  "query": "介绍一下2027年技术创新研讨会的内容",
+  "types": ["activity"],
+  "topK": 3
+}
+
+### ===== 多轮会话 API =====
+
+### 多轮会话 - 第一次提问（获取 conversationId）
+# @name firstQuestion
+POST {{baseUrl}}/api/rag/chat/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "活动在哪里举办？",
+  "types": ["activity"],
+  "topK": 5
+}
+
+> {%
+    client.global.set("conversationId", response.body.data.conversationId);
+    client.log("conversationId: " + response.body.data.conversationId);
+%}
+
+### 多轮会话 - 追问（使用相同 conversationId）
+# 依赖：先运行 firstQuestion 获取 conversationId
+POST {{baseUrl}}/api/rag/chat/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "费用是多少？",
+  "conversationId": "{{conversationId}}"
+}
+
+### 多轮会话 - 继续追问
+POST {{baseUrl}}/api/rag/chat/sync
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "什么时候举办？",
+  "conversationId": "{{conversationId}}"
+}
+
+### 多轮会话 - 流式响应（首次提问）
+# @name firstStreamQuestion
+POST {{baseUrl}}/api/rag/chat
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+Accept: text/event-stream
+
+{
+  "query": "有哪些技术创新相关的活动？",
+  "types": ["activity"],
+  "topK": 3
+}
+
+### 多轮会话 - 流式响应（追问）
+# 注意：需手动从上一个请求的 meta 事件中复制 conversationId
+POST {{baseUrl}}/api/rag/chat
+Content-Type: {{contentType}}
+Authorization: Bearer {{accessToken}}
+Accept: text/event-stream
+
+{
+  "query": "主讲人是谁？",
+  "conversationId": "替换为上一个请求返回的conversationId"
+}
+
+### ===== 向量管理 API =====
+
+### 获取向量统计信息
+GET {{baseUrl}}/api/admin/vectors/stats
+Authorization: Bearer {{accessToken}}

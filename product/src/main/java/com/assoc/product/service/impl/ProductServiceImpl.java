@@ -9,12 +9,17 @@ import com.assoc.product.entity.ProductCategory;
 import com.assoc.product.repository.ProductCategoryRepository;
 import com.assoc.product.repository.ProductRepository;
 import com.assoc.product.service.ProductService;
+import com.assoc.common.event.VectorizeEvent;
 import com.assoc.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +28,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final ProductCategoryRepository categoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int STATUS_PUBLISHED = 1;
     private static final int STATUS_DRAFT = 0;
@@ -88,6 +94,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         product = productRepository.save(product);
+        publishVectorizeEvent(product, VectorizeEvent.EventAction.UPSERT);
         return toResponse(product);
     }
 
@@ -111,6 +118,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         product = productRepository.save(product);
+        publishVectorizeEvent(product, VectorizeEvent.EventAction.UPSERT);
         return toResponse(product);
     }
 
@@ -121,6 +129,11 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException("产品不存在: " + id);
         }
         productRepository.deleteById(id);
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("product")
+                .entityId(id)
+                .action(VectorizeEvent.EventAction.DELETE)
+                .build());
     }
 
     private void mapRequestToEntity(ProductRequest request, Product product) {
@@ -202,5 +215,34 @@ public class ProductServiceImpl implements ProductService {
         response.setSortOrder(category.getSortOrder());
         response.setStatus(category.getStatus());
         return response;
+    }
+
+    private void publishVectorizeEvent(Product product, VectorizeEvent.EventAction action) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("name", nullToEmpty(product.getName()));
+        fields.put("summary", nullToEmpty(product.getSummary()));
+        fields.put("description", nullToEmpty(product.getDescription()));
+        fields.put("features", nullToEmpty(product.getFeatures()));
+        fields.put("application", nullToEmpty(product.getApplication()));
+        fields.put("specifications", nullToEmpty(product.getSpecifications()));
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("name", product.getName());
+        if (product.getCategory() != null) {
+            metadata.put("categoryName", product.getCategory().getName());
+        }
+        metadata.put("manufacturer", product.getManufacturer());
+
+        eventPublisher.publishEvent(VectorizeEvent.builder()
+                .entityType("product")
+                .entityId(product.getId())
+                .action(action)
+                .fields(fields)
+                .metadata(metadata)
+                .build());
+    }
+
+    private String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 }

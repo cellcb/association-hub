@@ -1,6 +1,6 @@
 spring:
   application:
-    name: water-platform
+    name: assoc-platform
   ai:
     openai:
       base-url: https://ark.cn-beijing.volces.com/api/v3
