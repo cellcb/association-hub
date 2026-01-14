@@ -305,13 +305,24 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
             </div>
           </div>
           {hasConversation && (
-            <button
-              onClick={handleNewConversation}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              开始新对话
-            </button>
+            <div className="flex items-center gap-2">
+              {isExpanded && (
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                  收起
+                </button>
+              )}
+              <button
+                onClick={handleNewConversation}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                新对话
+              </button>
+            </div>
           )}
         </div>
 
@@ -323,16 +334,6 @@ export function AiSearch({ onNavigate }: AiSearchProps) {
               isExpanded ? 'flex-1 min-h-0' : 'max-h-96 mb-4'
             }`}
           >
-            {/* Collapse Button */}
-            {isExpanded && (
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="absolute top-3 right-3 z-10 p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
-                title="收起对话"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-            )}
             <div className="p-6 space-y-6">
               {/* Message History */}
               {messages.map((msg, index) => (
