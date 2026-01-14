@@ -192,7 +192,7 @@ INSERT INTO sys_config (config_key, config_value, category, description, sort_or
     {"value": "50,000㎡", "label": "展览面积"}
   ],
   "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxleGhpYml0aW9uJTIwaGFsbHxlbnwxfHx8fDE3MzY1NzI3Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  "primaryButton": {"text": "查看展会详情", "icon": "Calendar"},
+  "primaryButton": {"text": "查看展会详情", "icon": "Calendar", "activityId": ""},
   "secondaryButton": {"text": "展位预订", "icon": "ExternalLink"}
 }', 'exhibition', '展览会信息', 1);
 
