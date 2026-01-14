@@ -211,8 +211,15 @@ public class PgVectorStore implements VectorStore {
             Object[] cols = (Object[]) row;
             String title = null;
             Map<String, Object> metadata = deserializeMetadata((String) cols[4]);
-            if (metadata != null && metadata.containsKey("title")) {
-                title = (String) metadata.get("title");
+            if (metadata != null) {
+                // 优先使用 name（适用于专家、产品），其次使用 title（适用于活动、新闻、项目）
+                Object nameValue = metadata.get("name");
+                Object titleValue = metadata.get("title");
+                if (nameValue != null && !nameValue.toString().isBlank()) {
+                    title = nameValue.toString();
+                } else if (titleValue != null && !titleValue.toString().isBlank()) {
+                    title = titleValue.toString();
+                }
             }
 
             searchResults.add(SearchResult.builder()

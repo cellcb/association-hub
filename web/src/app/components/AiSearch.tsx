@@ -127,9 +127,9 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const FOLLOW_UP_SUGGESTIONS = [
-  '费用多少？',
-  '怎么报名？',
-  '在哪举办？',
+  '详细介绍一下',
+  '有联系方式吗',
+  '还有类似的吗',
 ];
 
 // Icon mapping
