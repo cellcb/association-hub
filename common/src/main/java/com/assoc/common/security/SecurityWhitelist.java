@@ -39,7 +39,9 @@ public class SecurityWhitelist {
             // Activity module - public endpoints
             "/api/activities/**",
             // Product module - public endpoints
-            "/api/products/**"
+            "/api/products/**",
+            // Manufacturer module - public endpoints
+            "/api/manufacturers/**"
     );
 
     private static final List<String> PERMISSION_EXEMPT_PATTERNS =

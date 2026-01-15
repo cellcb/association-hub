@@ -6,6 +6,7 @@ import { ExpertDirectory } from './components/ExpertDirectory';
 import { ProjectShowcase } from './components/ProjectShowcase';
 import { ActivityCenter } from './components/ActivityCenter';
 import { ProductCatalog } from './components/ProductCatalog';
+import { ManufacturerCatalog } from './components/ManufacturerCatalog';
 import { UserProfile } from './components/UserProfile';
 import { MyRegistrations } from './components/MyRegistrations';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -14,7 +15,7 @@ import { Footer } from './components/layout/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SiteConfigProvider } from '@/contexts/SiteConfigContext';
 
-export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'profile' | 'my-registrations' | 'admin';
+export type PageType = 'home' | 'news' | 'experts' | 'projects' | 'activities' | 'products' | 'manufacturers' | 'profile' | 'my-registrations' | 'admin';
 
 export interface NavigationParams {
   activityId?: number;
@@ -22,6 +23,7 @@ export interface NavigationParams {
   expertId?: number;
   projectId?: number;
   productId?: number;
+  manufacturerId?: number;
 }
 
 function AppContent() {
@@ -41,6 +43,7 @@ function AppContent() {
         experts: 'experts',
         projects: 'projects',
         products: 'products',
+        manufacturers: 'manufacturers',
       };
       const page = pageMap[path];
       if (page) {
@@ -52,12 +55,14 @@ function AppContent() {
         const expertId = params.get('expertId');
         const projectId = params.get('projectId');
         const productId = params.get('productId');
+        const manufacturerId = params.get('manufacturerId');
 
         if (activityId) navParams.activityId = parseInt(activityId, 10);
         if (newsId) navParams.newsId = parseInt(newsId, 10);
         if (expertId) navParams.expertId = parseInt(expertId, 10);
         if (projectId) navParams.projectId = parseInt(projectId, 10);
         if (productId) navParams.productId = parseInt(productId, 10);
+        if (manufacturerId) navParams.manufacturerId = parseInt(manufacturerId, 10);
 
         setNavParams(navParams);
       }
@@ -87,6 +92,8 @@ function AppContent() {
         return <ActivityCenter initialActivityId={navParams.activityId} />;
       case 'products':
         return <ProductCatalog initialProductId={navParams.productId} />;
+      case 'manufacturers':
+        return <ManufacturerCatalog initialManufacturerId={navParams.manufacturerId} />;
       case 'profile':
         return <UserProfile />;
       case 'my-registrations':

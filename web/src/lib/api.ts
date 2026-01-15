@@ -891,6 +891,105 @@ export async function getProductCategories(): Promise<Result<ProductCategoryResp
   return request('/products/categories');
 }
 
+// ========== Public Manufacturer API ==========
+
+import type {
+  ManufacturerListResponse,
+  ManufacturerResponse,
+  ManufacturerRequest,
+  ManufacturerCategoryResponse,
+} from '@/types/manufacturer';
+
+/**
+ * 获取公开厂商列表（前台展示）
+ */
+export async function getPublicManufacturers(
+  params?: PageParams & { keyword?: string; categoryId?: number }
+): Promise<Result<Page<ManufacturerListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  const query = searchParams.toString();
+  return request(`/manufacturers${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取公开厂商详情（前台展示）
+ */
+export async function getPublicManufacturerById(id: number): Promise<Result<ManufacturerResponse>> {
+  return request(`/manufacturers/${id}`);
+}
+
+/**
+ * 增加厂商浏览量
+ */
+export async function incrementManufacturerViews(id: number): Promise<Result<void>> {
+  return request(`/manufacturers/${id}/views`, { method: 'POST' });
+}
+
+/**
+ * 获取厂商分类列表
+ */
+export async function getManufacturerCategories(): Promise<Result<ManufacturerCategoryResponse[]>> {
+  return request('/manufacturers/categories');
+}
+
+// ========== Admin Manufacturer API ==========
+
+/**
+ * 获取厂商列表（管理端）
+ */
+export async function getManufacturers(
+  params?: PageParams & { status?: number; categoryId?: number; keyword?: string }
+): Promise<Result<Page<ManufacturerListResponse>>> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.size !== undefined) searchParams.append('size', params.size.toString());
+  if (params?.sort) searchParams.append('sort', params.sort);
+  if (params?.status !== undefined) searchParams.append('status', params.status.toString());
+  if (params?.categoryId !== undefined) searchParams.append('categoryId', params.categoryId.toString());
+  if (params?.keyword) searchParams.append('keyword', params.keyword);
+  const query = searchParams.toString();
+  return request(`/admin/manufacturers${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 获取厂商详情（管理端）
+ */
+export async function getManufacturerById(id: number): Promise<Result<ManufacturerResponse>> {
+  return request(`/admin/manufacturers/${id}`);
+}
+
+/**
+ * 创建厂商
+ */
+export async function createManufacturer(data: ManufacturerRequest): Promise<Result<ManufacturerResponse>> {
+  return request('/admin/manufacturers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新厂商
+ */
+export async function updateManufacturer(id: number, data: ManufacturerRequest): Promise<Result<ManufacturerResponse>> {
+  return request(`/admin/manufacturers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除厂商
+ */
+export async function deleteManufacturer(id: number): Promise<Result<void>> {
+  return request(`/admin/manufacturers/${id}`, { method: 'DELETE' });
+}
+
 // ========== System Config API ==========
 
 import type { ConfigResponse, ConfigUpdateRequest, SiteConfig } from '@/types/config';

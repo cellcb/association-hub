@@ -1,4 +1,4 @@
-import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, Newspaper, FolderOpen, LogOut, UserCircle, ChevronDown, ClipboardList } from 'lucide-react';
+import { Menu, X, Users, FileText, Calendar, Package, Settings, LogIn, User, Newspaper, FolderOpen, LogOut, UserCircle, ChevronDown, ClipboardList, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageType, NavigationParams } from '../../App';
 import { LoginModal } from '../auth/LoginModal';
@@ -32,6 +32,7 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
     { id: 'projects' as PageType, label: '优秀案例', icon: FolderOpen },
     { id: 'activities' as PageType, label: '活动中心', icon: Calendar },
     { id: 'products' as PageType, label: '产品展示', icon: Package },
+    { id: 'manufacturers' as PageType, label: '厂商展示', icon: Building2 },
   ];
 
   return (
