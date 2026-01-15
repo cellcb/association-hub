@@ -31,20 +31,20 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
     { id: 'experts' as PageType, label: '专家风采', icon: Users },
     { id: 'projects' as PageType, label: '优秀案例', icon: FolderOpen },
     { id: 'activities' as PageType, label: '活动中心', icon: Calendar },
-    { id: 'products' as PageType, label: '产品展示', icon: Package },
+    { id: 'products' as PageType, label: '创新绿色产品', icon: Package },
     { id: 'manufacturers' as PageType, label: '厂商展示', icon: Building2 },
   ];
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center justify-between h-16">
           {/* Logo and Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Settings className="w-6 h-6 text-white" />
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block whitespace-nowrap">
               <div className="text-sm text-gray-900">{siteName}</div>
               <div className="text-xs text-gray-600">{siteSlogan}</div>
             </div>
@@ -59,32 +59,33 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${
                   currentPage === item.id
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {item.icon && <item.icon className="w-4 h-4" />}
+                {/* 图标只在 xl (1280px+) 以上显示 */}
+                {item.icon && <item.icon className="w-4 h-4 hidden xl:block" />}
                 {item.label}
               </button>
             ))}
             {isAdmin && (
               <button
                 onClick={onAdminClick}
-                className="ml-4 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                className="ml-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-4 h-4 hidden xl:block" />
                 管理后台
               </button>
             )}
             {isAuthenticated && user ? (
-              <div className="relative ml-4">
+              <div className="relative ml-2">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  className="px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap"
                 >
-                  <UserCircle className="w-4 h-4" />
+                  <UserCircle className="w-4 h-4 hidden xl:block" />
                   {user.realName || user.username}
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -128,9 +129,9 @@ export function Header({ currentPage, onNavigate, onAdminClick }: HeaderProps) {
             ) : (
               <button
                 onClick={() => setLoginModalOpen(true)}
-                className="ml-4 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                className="ml-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap"
               >
-                <LogIn className="w-4 h-4" />
+                <LogIn className="w-4 h-4 hidden xl:block" />
                 登录
               </button>
             )}
