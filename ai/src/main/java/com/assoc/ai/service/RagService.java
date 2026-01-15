@@ -319,6 +319,7 @@ public class RagService {
             case "project" -> "项目";
             case "expert" -> "专家";
             case "product" -> "产品";
+            case "manufacturer" -> "厂商";
             default -> entityType;
         };
     }
