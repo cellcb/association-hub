@@ -27,11 +27,24 @@ public class Project extends AuditableEntity {
     private String title;
 
     /**
-     * Project category
+     * Project category (legacy enum field, kept for backward compatibility)
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false, length = 30)
+    @Column(name = "category", length = 30)
     private ProjectCategory category;
+
+    /**
+     * Project category ID (new field for dynamic category management)
+     */
+    @Column(name = "category_id")
+    private Long categoryId;
+
+    /**
+     * Project category entity (for fetching category details)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", insertable = false, updatable = false)
+    private ProjectCategoryEntity categoryEntity;
 
     /**
      * Location

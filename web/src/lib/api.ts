@@ -455,6 +455,7 @@ import type {
   ExpertResponse,
   ExpertRequest,
   ExpertiseFieldResponse,
+  ExpertiseFieldRequest,
 } from '@/types/expert';
 
 /**
@@ -511,6 +512,104 @@ export async function deleteExpert(id: number): Promise<Result<void>> {
  */
 export async function getExpertiseFields(): Promise<Result<ExpertiseFieldResponse[]>> {
   return request('/expertise-fields');
+}
+
+// ========== Admin Expertise Field API ==========
+
+/**
+ * 获取管理端专业领域列表
+ */
+export async function getAdminExpertiseFields(): Promise<Result<ExpertiseFieldResponse[]>> {
+  return request('/admin/expertise-fields');
+}
+
+/**
+ * 获取专业领域详情
+ */
+export async function getAdminExpertiseFieldById(id: number): Promise<Result<ExpertiseFieldResponse>> {
+  return request(`/admin/expertise-fields/${id}`);
+}
+
+/**
+ * 创建专业领域
+ */
+export async function createExpertiseField(data: ExpertiseFieldRequest): Promise<Result<ExpertiseFieldResponse>> {
+  return request('/admin/expertise-fields', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新专业领域
+ */
+export async function updateExpertiseField(id: number, data: ExpertiseFieldRequest): Promise<Result<ExpertiseFieldResponse>> {
+  return request(`/admin/expertise-fields/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除专业领域
+ */
+export async function deleteExpertiseField(id: number): Promise<Result<void>> {
+  return request(`/admin/expertise-fields/${id}`, { method: 'DELETE' });
+}
+
+// ========== Admin Project Category API ==========
+
+import type {
+  ProjectCategoryResponse,
+  ProjectCategoryRequest,
+} from '@/types/project';
+
+/**
+ * 获取管理端项目类别列表
+ */
+export async function getAdminProjectCategories(): Promise<Result<ProjectCategoryResponse[]>> {
+  return request('/admin/project-categories');
+}
+
+/**
+ * 获取项目类别详情
+ */
+export async function getAdminProjectCategoryById(id: number): Promise<Result<ProjectCategoryResponse>> {
+  return request(`/admin/project-categories/${id}`);
+}
+
+/**
+ * 创建项目类别
+ */
+export async function createProjectCategory(data: ProjectCategoryRequest): Promise<Result<ProjectCategoryResponse>> {
+  return request('/admin/project-categories', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新项目类别
+ */
+export async function updateProjectCategory(id: number, data: ProjectCategoryRequest): Promise<Result<ProjectCategoryResponse>> {
+  return request(`/admin/project-categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除项目类别
+ */
+export async function deleteProjectCategory(id: number): Promise<Result<void>> {
+  return request(`/admin/project-categories/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * 获取公开项目类别列表（用于下拉框）
+ */
+export async function getProjectCategories(): Promise<Result<ProjectCategoryResponse[]>> {
+  return request('/project-categories');
 }
 
 // ========== Admin Project API ==========
@@ -799,6 +898,7 @@ import type {
   ProductResponse,
   ProductRequest,
   ProductCategoryResponse,
+  ProductCategoryRequest,
 } from '@/types/product';
 
 /**
@@ -889,6 +989,56 @@ export async function deleteProduct(id: number): Promise<Result<void>> {
  */
 export async function getProductCategories(): Promise<Result<ProductCategoryResponse[]>> {
   return request('/products/categories');
+}
+
+// ========== Admin Product Category API ==========
+
+/**
+ * 获取管理端产品分类列表
+ */
+export async function getAdminProductCategories(): Promise<Result<ProductCategoryResponse[]>> {
+  return request('/admin/product-categories');
+}
+
+/**
+ * 获取管理端产品分类树
+ */
+export async function getAdminProductCategoryTree(): Promise<Result<ProductCategoryResponse[]>> {
+  return request('/admin/product-categories/tree');
+}
+
+/**
+ * 获取产品分类详情
+ */
+export async function getAdminProductCategoryById(id: number): Promise<Result<ProductCategoryResponse>> {
+  return request(`/admin/product-categories/${id}`);
+}
+
+/**
+ * 创建产品分类
+ */
+export async function createProductCategory(data: ProductCategoryRequest): Promise<Result<ProductCategoryResponse>> {
+  return request('/admin/product-categories', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 更新产品分类
+ */
+export async function updateProductCategory(id: number, data: ProductCategoryRequest): Promise<Result<ProductCategoryResponse>> {
+  return request(`/admin/product-categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 删除产品分类
+ */
+export async function deleteProductCategory(id: number): Promise<Result<void>> {
+  return request(`/admin/product-categories/${id}`, { method: 'DELETE' });
 }
 
 // ========== Public Manufacturer API ==========

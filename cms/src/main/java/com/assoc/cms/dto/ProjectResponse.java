@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class ProjectResponse {
     private Long id;
     private String title;
+    private Long categoryId;
     private ProjectCategory category;
     private String categoryName;
     private String location;

@@ -32,6 +32,7 @@ public class SecurityWhitelist {
             "/api/news/**",
             "/api/experts/**",
             "/api/projects/**",
+            "/api/project-categories/**",
             "/api/tags/**",
             "/api/expertise-fields/**",
             "/api/comments/*/like",

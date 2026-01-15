@@ -31,4 +31,7 @@ public interface ExpertRepository extends JpaRepository<Expert, Long> {
     Page<Expert> findByExpertiseFieldCode(@Param("fieldCode") String fieldCode, Pageable pageable);
 
     long countByStatus(Integer status);
+
+    @Query("SELECT COUNT(DISTINCT e) FROM Expert e JOIN e.expertiseFields ef WHERE ef.id = :fieldId")
+    long countByExpertiseFieldId(@Param("fieldId") Long fieldId);
 }

@@ -7,6 +7,7 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  getProjectCategories,
 } from '@/lib/api';
 import type {
   ProjectListResponse,
@@ -17,13 +18,15 @@ import type {
   ProjectScale,
   TechnicalFeature,
   ProjectAchievement,
+  ProjectCategoryResponse,
 } from '@/types/project';
-import { projectCategoryLabels, projectStatusLabels, parseProjectResponse } from '@/types/project';
+import { projectStatusLabels, parseProjectResponse } from '@/types/project';
 
 export function ProjectManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | ProjectStatus>('all');
-  const [filterCategory, setFilterCategory] = useState<'all' | ProjectCategory>('all');
+  const [filterCategoryId, setFilterCategoryId] = useState<'all' | number>('all');
+  const [categories, setCategories] = useState<ProjectCategoryResponse[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -42,6 +45,14 @@ export function ProjectManagement() {
 
   const [formData, setFormData] = useState<ProjectFormData>(getInitialFormData());
 
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    const result = await getProjectCategories();
+    if (result.success && result.data) {
+      setCategories(result.data);
+    }
+  }, []);
+
   // Fetch projects
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -51,10 +62,14 @@ export function ProjectManagement() {
         page: currentPage - 1,
         size: itemsPerPage,
         status: filterStatus === 'all' ? undefined : filterStatus,
-        category: filterCategory === 'all' ? undefined : filterCategory,
       });
       if (result.success && result.data) {
-        setProjects(result.data.content);
+        // Filter by categoryId on client side for now
+        let filteredContent = result.data.content;
+        if (filterCategoryId !== 'all') {
+          filteredContent = filteredContent.filter(p => p.categoryId === filterCategoryId);
+        }
+        setProjects(filteredContent);
         setTotalItems(result.data.page.totalElements);
         setTotalPages(result.data.page.totalPages);
       } else {
@@ -65,7 +80,11 @@ export function ProjectManagement() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, filterStatus, filterCategory]);
+  }, [currentPage, itemsPerPage, filterStatus, filterCategoryId]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   useEffect(() => {
     fetchProjects();
@@ -269,16 +288,16 @@ export function ProjectManagement() {
           </select>
 
           <select
-            value={filterCategory}
+            value={filterCategoryId}
             onChange={(e) => {
-              setFilterCategory(e.target.value === 'all' ? 'all' : e.target.value as ProjectCategory);
+              setFilterCategoryId(e.target.value === 'all' ? 'all' : Number(e.target.value));
               setCurrentPage(1);
             }}
             className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
           >
             <option value="all">全部类别</option>
-            {Object.entries(projectCategoryLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
         </div>
@@ -423,6 +442,7 @@ export function ProjectManagement() {
           onClose={() => setShowAddModal(false)}
           onSubmit={handleSubmitAdd}
           submitting={submitting}
+          categories={categories}
         />
       )}
 
@@ -435,6 +455,7 @@ export function ProjectManagement() {
           onClose={() => setShowEditModal(false)}
           onSubmit={handleSubmitEdit}
           submitting={submitting}
+          categories={categories}
         />
       )}
 
@@ -487,7 +508,7 @@ export function ProjectManagement() {
 // Form Data Type
 interface ProjectFormData {
   title: string;
-  category: ProjectCategory;
+  categoryId: number | null;
   location: string;
   completionDate: string;
   owner: string;
@@ -509,7 +530,7 @@ interface ProjectFormData {
 function getInitialFormData(): ProjectFormData {
   return {
     title: '',
-    category: 'SMART_BUILDING',
+    categoryId: null,
     location: '',
     completionDate: '',
     owner: '',
@@ -533,7 +554,7 @@ function projectToFormData(project: ProjectResponse): ProjectFormData {
   const parsed = parseProjectResponse(project);
   return {
     title: project.title,
-    category: project.category,
+    categoryId: project.categoryId,
     location: project.location || '',
     completionDate: project.completionDate || '',
     owner: project.owner || '',
@@ -564,7 +585,7 @@ function formDataToRequest(formData: ProjectFormData): ProjectRequest {
 
   return {
     title: formData.title,
-    category: formData.category,
+    categoryId: formData.categoryId!,
     location: formData.location || undefined,
     completionDate: formData.completionDate || undefined,
     owner: formData.owner || undefined,
@@ -598,14 +619,15 @@ interface ProjectModalProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   submitting: boolean;
+  categories: ProjectCategoryResponse[];
 }
 
-function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitting }: ProjectModalProps) {
+function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitting, categories }: ProjectModalProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'status' ? Number(value) : value
+      [name]: name === 'status' || name === 'categoryId' ? Number(value) : value
     }));
   };
 
@@ -760,14 +782,15 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                 <div>
                   <label className="block text-sm text-gray-700 mb-2">项目类别 *</label>
                   <select
-                    name="category"
+                    name="categoryId"
                     required
-                    value={formData.category}
+                    value={formData.categoryId || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
-                    {Object.entries(projectCategoryLabels).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
+                    <option value="">请选择类别</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>

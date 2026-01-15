@@ -19,4 +19,8 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
     List<ProductCategory> findAllByOrderBySortOrderAsc();
 
     boolean existsByCode(String code);
+
+    boolean existsByCodeAndIdNot(String code, Long id);
+
+    List<ProductCategory> findByParentId(Long parentId);
 }

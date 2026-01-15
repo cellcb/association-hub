@@ -1,4 +1,4 @@
-// 项目类别枚举
+// 项目类别枚举 (legacy, kept for backward compatibility)
 export type ProjectCategory =
   | 'SMART_BUILDING'    // 智能建筑
   | 'GREEN_BUILDING'    // 绿色建筑
@@ -6,7 +6,7 @@ export type ProjectCategory =
   | 'PREFABRICATED'     // 装配式建筑
   | 'RENOVATION';       // 既有建筑改造
 
-// 类别标签映射
+// 类别标签映射 (legacy)
 export const projectCategoryLabels: Record<ProjectCategory, string> = {
   SMART_BUILDING: '智能建筑',
   GREEN_BUILDING: '绿色建筑',
@@ -14,6 +14,25 @@ export const projectCategoryLabels: Record<ProjectCategory, string> = {
   PREFABRICATED: '装配式建筑',
   RENOVATION: '既有建筑改造',
 };
+
+// 项目类别响应（新的动态类别）
+export interface ProjectCategoryResponse {
+  id: number;
+  name: string;
+  code: string;
+  sortOrder: number;
+  status: number;
+  description?: string;
+}
+
+// 项目类别请求
+export interface ProjectCategoryRequest {
+  name: string;
+  code?: string;
+  sortOrder?: number;
+  status?: number;
+  description?: string;
+}
 
 // 项目状态枚举（后端用数字）
 export type ProjectStatus = 0 | 1;  // 0=草稿, 1=已发布
@@ -48,6 +67,7 @@ export interface ProjectAchievement {
 export interface ProjectListResponse {
   id: number;
   title: string;
+  categoryId: number | null;
   category: ProjectCategory;
   categoryName: string;
   location: string;
@@ -69,6 +89,7 @@ export interface ProjectListResponse {
 export interface ProjectResponse {
   id: number;
   title: string;
+  categoryId: number | null;
   category: ProjectCategory;
   categoryName: string;
   location: string;
@@ -96,7 +117,7 @@ export interface ProjectResponse {
 // 创建/更新项目请求
 export interface ProjectRequest {
   title: string;
-  category: ProjectCategory;
+  categoryId: number;
   location?: string;
   completionDate?: string;
   owner?: string;

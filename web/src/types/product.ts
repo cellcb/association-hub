@@ -19,6 +19,16 @@ export interface ProductCategoryResponse {
   children?: ProductCategoryResponse[];
 }
 
+// 产品分类请求
+export interface ProductCategoryRequest {
+  name: string;
+  code?: string;
+  parentId?: number | null;
+  sortOrder?: number;
+  status?: number;
+  description?: string;
+}
+
 // 产品列表响应
 export interface ProductListResponse {
   id: number;

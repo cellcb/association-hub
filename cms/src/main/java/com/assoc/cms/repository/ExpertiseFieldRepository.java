@@ -14,6 +14,8 @@ public interface ExpertiseFieldRepository extends JpaRepository<ExpertiseField, 
 
     boolean existsByCode(String code);
 
+    boolean existsByCodeAndIdNot(String code, Long id);
+
     List<ExpertiseField> findByStatusOrderBySortOrderAsc(Integer status);
 
     List<ExpertiseField> findAllByOrderBySortOrderAsc();

@@ -5,6 +5,8 @@ import com.assoc.cms.dto.ProjectRequest;
 import com.assoc.cms.dto.ProjectResponse;
 import com.assoc.cms.entity.Project;
 import com.assoc.cms.entity.ProjectCategory;
+import com.assoc.cms.entity.ProjectCategoryEntity;
+import com.assoc.cms.repository.ProjectCategoryRepository;
 import com.assoc.cms.repository.ProjectRepository;
 import com.assoc.cms.service.ProjectService;
 import com.assoc.common.event.VectorizeEvent;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final ProjectCategoryRepository projectCategoryRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     private static final int STATUS_PUBLISHED = 1;
@@ -122,7 +125,8 @@ public class ProjectServiceImpl implements ProjectService {
 
     private void mapRequestToEntity(ProjectRequest request, Project project) {
         project.setTitle(request.getTitle());
-        project.setCategory(request.getCategory());
+        // Use categoryId for dynamic category system
+        project.setCategoryId(request.getCategoryId());
         project.setLocation(request.getLocation());
         project.setCompletionDate(request.getCompletionDate());
         project.setOwner(request.getOwner());
@@ -144,8 +148,9 @@ public class ProjectServiceImpl implements ProjectService {
         ProjectListResponse response = new ProjectListResponse();
         response.setId(project.getId());
         response.setTitle(project.getTitle());
+        response.setCategoryId(project.getCategoryId());
         response.setCategory(project.getCategory());
-        response.setCategoryName(getCategoryName(project.getCategory()));
+        response.setCategoryName(getCategoryNameFromEntity(project));
         response.setLocation(project.getLocation());
         response.setCompletionDate(project.getCompletionDate());
         response.setOwner(project.getOwner());
@@ -165,8 +170,9 @@ public class ProjectServiceImpl implements ProjectService {
         ProjectResponse response = new ProjectResponse();
         response.setId(project.getId());
         response.setTitle(project.getTitle());
+        response.setCategoryId(project.getCategoryId());
         response.setCategory(project.getCategory());
-        response.setCategoryName(getCategoryName(project.getCategory()));
+        response.setCategoryName(getCategoryNameFromEntity(project));
         response.setLocation(project.getLocation());
         response.setCompletionDate(project.getCompletionDate());
         response.setOwner(project.getOwner());
@@ -200,6 +206,21 @@ public class ProjectServiceImpl implements ProjectService {
         };
     }
 
+    /**
+     * Get category name from entity (dynamic category system)
+     * Falls back to legacy enum if categoryId is not set
+     */
+    private String getCategoryNameFromEntity(Project project) {
+        // First try to get from dynamic category entity
+        if (project.getCategoryId() != null) {
+            return projectCategoryRepository.findById(project.getCategoryId())
+                    .map(ProjectCategoryEntity::getName)
+                    .orElse(null);
+        }
+        // Fallback to legacy enum
+        return getCategoryName(project.getCategory());
+    }
+
     private void publishVectorizeEvent(Project project, VectorizeEvent.EventAction action) {
         Map<String, String> fields = new HashMap<>();
         fields.put("title", nullToEmpty(project.getTitle()));
@@ -217,7 +238,15 @@ public class ProjectServiceImpl implements ProjectService {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("title", project.getTitle());
-        if (project.getCategory() != null) {
+        // Use dynamic category system
+        if (project.getCategoryId() != null) {
+            projectCategoryRepository.findById(project.getCategoryId())
+                    .ifPresent(categoryEntity -> {
+                        metadata.put("category", categoryEntity.getCode());
+                        metadata.put("categoryName", categoryEntity.getName());
+                    });
+        } else if (project.getCategory() != null) {
+            // Fallback to legacy enum for old data
             metadata.put("category", project.getCategory().name());
             metadata.put("categoryName", getCategoryName(project.getCategory()));
         }

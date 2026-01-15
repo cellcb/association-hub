@@ -32,4 +32,6 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     long countByStatus(Integer status);
 
     long countByCategory(ProjectCategory category);
+
+    long countByCategoryId(Long categoryId);
 }

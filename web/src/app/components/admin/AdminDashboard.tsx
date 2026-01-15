@@ -15,15 +15,20 @@ import {
   Building2,
   Newspaper,
   ShieldX,
-  Factory
+  Factory,
+  FolderTree,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MemberManagement } from './MemberManagement';
 import { ExpertManagement } from './ExpertManagement';
+import { ExpertiseFieldManagement } from './ExpertiseFieldManagement';
 import { ProjectManagement } from './ProjectManagement';
+import { ProjectCategoryManagement } from './ProjectCategoryManagement';
 import { NewsManagement } from './NewsManagement';
 import { ActivityManagement } from './ActivityManagement';
 import { ProductManagement } from './ProductManagement';
+import { ProductCategoryManagement } from './ProductCategoryManagement';
 import { ManufacturerManagement } from './ManufacturerManagement';
 import { SystemSettings } from './SystemSettings';
 import { ConfigManagement } from './ConfigManagement';
@@ -32,7 +37,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminPage = 'dashboard' | 'members' | 'experts' | 'projects' | 'news' | 'activities' | 'products' | 'manufacturers' | 'configs' | 'settings';
+type AdminPage = 'dashboard' | 'members' | 'experts' | 'expertise-fields' | 'projects' | 'project-categories' | 'news' | 'activities' | 'products' | 'product-categories' | 'manufacturers' | 'configs' | 'settings';
 
 export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const { isAdmin } = useAuth();
@@ -61,10 +66,13 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     { id: 'dashboard' as AdminPage, label: '数据概览', icon: LayoutDashboard },
     { id: 'members' as AdminPage, label: '会员管理', icon: Users },
     { id: 'experts' as AdminPage, label: '专家管理', icon: Award },
+    { id: 'expertise-fields' as AdminPage, label: '专业领域', icon: BookOpen },
     { id: 'projects' as AdminPage, label: '项目管理', icon: Building2 },
+    { id: 'project-categories' as AdminPage, label: '项目类别', icon: FolderTree },
     { id: 'news' as AdminPage, label: '新闻管理', icon: Newspaper },
     { id: 'activities' as AdminPage, label: '活动管理', icon: Calendar },
     { id: 'products' as AdminPage, label: '产品管理', icon: Package },
+    { id: 'product-categories' as AdminPage, label: '产品分类', icon: FolderTree },
     { id: 'manufacturers' as AdminPage, label: '厂商管理', icon: Factory },
     { id: 'configs' as AdminPage, label: '网站配置', icon: Settings },
     { id: 'settings' as AdminPage, label: '系统设置', icon: Settings },
@@ -187,14 +195,20 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         return <MemberManagement />;
       case 'experts':
         return <ExpertManagement />;
+      case 'expertise-fields':
+        return <ExpertiseFieldManagement />;
       case 'projects':
         return <ProjectManagement />;
+      case 'project-categories':
+        return <ProjectCategoryManagement />;
       case 'news':
         return <NewsManagement />;
       case 'activities':
         return <ActivityManagement />;
       case 'products':
         return <ProductManagement />;
+      case 'product-categories':
+        return <ProductCategoryManagement />;
       case 'manufacturers':
         return <ManufacturerManagement />;
       case 'configs':

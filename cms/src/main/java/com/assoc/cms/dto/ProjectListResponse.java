@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public class ProjectListResponse {
     private Long id;
     private String title;
+    private Long categoryId;
     private ProjectCategory category;
     private String categoryName;
     private String location;

@@ -1,6 +1,5 @@
 package com.assoc.cms.dto;
 
-import com.assoc.cms.entity.ProjectCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -13,7 +12,7 @@ public class ProjectRequest {
     private String title;
 
     @NotNull(message = "项目类别不能为空")
-    private ProjectCategory category;
+    private Long categoryId;
 
     private String location;
     private LocalDate completionDate;

@@ -7,6 +7,16 @@ export interface ExpertiseFieldResponse {
   code: string;
   sortOrder: number;
   status: number;
+  description?: string;
+}
+
+// 专业领域请求
+export interface ExpertiseFieldRequest {
+  name: string;
+  code?: string;
+  sortOrder?: number;
+  status?: number;
+  description?: string;
 }
 
 // 专家列表响应（用于卡片展示）
