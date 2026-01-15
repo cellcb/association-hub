@@ -14,6 +14,8 @@ public interface ProjectService extends VectorSyncable {
 
     Page<ProjectListResponse> getProjectsByCategory(ProjectCategory category, Pageable pageable);
 
+    Page<ProjectListResponse> getProjectsByCategoryCode(String categoryCode, Pageable pageable);
+
     Page<ProjectListResponse> searchProjects(String keyword, Pageable pageable);
 
     ProjectResponse getProjectById(Long id);

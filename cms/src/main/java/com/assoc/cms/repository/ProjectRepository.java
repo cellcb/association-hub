@@ -34,4 +34,6 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     long countByCategory(ProjectCategory category);
 
     long countByCategoryId(Long categoryId);
+
+    Page<Project> findByStatusAndCategoryId(Integer status, Long categoryId, Pageable pageable);
 }

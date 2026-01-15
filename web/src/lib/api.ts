@@ -1300,7 +1300,7 @@ export async function getPublicProjects(params?: {
   page?: number;
   size?: number;
   keyword?: string;
-  category?: ProjectCategory;
+  category?: string;
 }): Promise<Result<Page<ProjectListResponse>>> {
   const searchParams = new URLSearchParams();
   if (params?.page !== undefined) searchParams.append('page', params.page.toString());

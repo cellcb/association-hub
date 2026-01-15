@@ -1,19 +1,9 @@
 import { Search, MapPin, Building2, Calendar, Award, Eye, TrendingUp, X, FileText, Lightbulb, CheckCircle, BarChart3, Image as ImageIcon, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getPublicProjects, getPublicProjectById, incrementProjectViews } from '@/lib/api';
-import type { ProjectListResponse, ProjectCategory, ParsedProjectResponse } from '@/types/project';
+import { getPublicProjects, getPublicProjectById, incrementProjectViews, getProjectCategories } from '@/lib/api';
+import type { ProjectListResponse, ParsedProjectResponse, ProjectCategoryResponse } from '@/types/project';
 import { projectCategoryLabels, parseProjectResponse } from '@/types/project';
-
-// 类别选项映射（UI 中文 -> API 枚举值）
-const categoryOptions: { label: string; value: ProjectCategory | null }[] = [
-  { label: '全部类型', value: null },
-  { label: '智能建筑', value: 'SMART_BUILDING' },
-  { label: '绿色建筑', value: 'GREEN_BUILDING' },
-  { label: 'BIM应用', value: 'BIM_APPLICATION' },
-  { label: '装配式建筑', value: 'PREFABRICATED' },
-  { label: '既有建筑改造', value: 'RENOVATION' },
-];
 
 interface ProjectShowcaseProps {
   initialProjectId?: number;
@@ -23,7 +13,10 @@ export function ProjectShowcase({ initialProjectId }: ProjectShowcaseProps) {
   // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // 分类数据（从后台加载）
+  const [categories, setCategories] = useState<ProjectCategoryResponse[]>([]);
 
   // 数据状态
   const [projects, setProjects] = useState<ProjectListResponse[]>([]);
@@ -49,8 +42,23 @@ export function ProjectShowcase({ initialProjectId }: ProjectShowcaseProps) {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // 加载项目分类
+  useEffect(() => {
+    getProjectCategories().then(res => {
+      if (res.success && res.data) {
+        setCategories(res.data);
+      }
+    });
+  }, []);
+
+  // 动态生成分类选项
+  const categoryOptions = [
+    { label: '全部类型', value: null as string | null },
+    ...categories.map(c => ({ label: c.name, value: c.code }))
+  ];
+
   // 类别变化时重置页码
-  const handleCategoryChange = (category: ProjectCategory | null) => {
+  const handleCategoryChange = (category: string | null) => {
     setSelectedCategory(category);
     setCurrentPage(0);
   };
@@ -65,7 +73,7 @@ export function ProjectShowcase({ initialProjectId }: ProjectShowcaseProps) {
         page: number;
         size: number;
         keyword?: string;
-        category?: ProjectCategory;
+        category?: string;
       } = {
         page: currentPage,
         size: pageSize,

@@ -27,14 +27,14 @@ public class ProjectController {
     @GetMapping
     public Result<Page<ProjectListResponse>> getProjects(
             @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword,
-            @Parameter(description = "项目类别") @RequestParam(required = false) ProjectCategory category,
+            @Parameter(description = "项目类别代码") @RequestParam(required = false) String category,
             @PageableDefault(sort = "createdTime", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<ProjectListResponse> result;
         if (keyword != null && !keyword.isEmpty()) {
             result = projectService.searchProjects(keyword, pageable);
-        } else if (category != null) {
-            result = projectService.getProjectsByCategory(category, pageable);
+        } else if (category != null && !category.isEmpty()) {
+            result = projectService.getProjectsByCategoryCode(category, pageable);
         } else {
             result = projectService.getPublishedProjects(pageable);
         }

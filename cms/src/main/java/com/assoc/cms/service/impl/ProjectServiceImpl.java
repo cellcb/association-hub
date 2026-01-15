@@ -47,6 +47,15 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    public Page<ProjectListResponse> getProjectsByCategoryCode(String categoryCode, Pageable pageable) {
+        // 先通过 code 查找分类
+        return projectCategoryRepository.findByCode(categoryCode)
+                .map(category -> projectRepository.findByStatusAndCategoryId(STATUS_PUBLISHED, category.getId(), pageable)
+                        .map(this::toListResponse))
+                .orElse(Page.empty(pageable));
+    }
+
+    @Override
     public Page<ProjectListResponse> searchProjects(String keyword, Pageable pageable) {
         return projectRepository.searchByKeyword(keyword, STATUS_PUBLISHED, pageable)
                 .map(this::toListResponse);
