@@ -25,7 +25,6 @@ public class ManufacturerResponse {
     private String mainBusiness;
     private String qualifications;
     private String honors;
-    private String cases;
     private String images;
     private Integer status;
     private Long views;
@@ -54,7 +53,6 @@ public class ManufacturerResponse {
         dto.setMainBusiness(entity.getMainBusiness());
         dto.setQualifications(entity.getQualifications());
         dto.setHonors(entity.getHonors());
-        dto.setCases(entity.getCases());
         dto.setImages(entity.getImages());
         dto.setStatus(entity.getStatus());
         dto.setViews(entity.getViews());

@@ -78,7 +78,6 @@ interface FormData {
   mainBusiness: string;
   qualifications: string[];
   honors: string[];
-  cases: string[];
   images: string[];
   status: number;
   featured: boolean;
@@ -101,7 +100,6 @@ const emptyFormData: FormData = {
   mainBusiness: '',
   qualifications: [],
   honors: [],
-  cases: [],
   images: [],
   status: 0,
   featured: false,
@@ -229,7 +227,6 @@ export function ManufacturerManagement() {
         mainBusiness: m.mainBusiness || '',
         qualifications: parseJsonArray(m.qualifications),
         honors: parseJsonArray(m.honors),
-        cases: parseJsonArray(m.cases),
         images: parseJsonArray(m.images),
         status: m.status,
         featured: m.featured,
@@ -285,7 +282,6 @@ export function ManufacturerManagement() {
         mainBusiness: formData.mainBusiness || undefined,
         qualifications: formData.qualifications.length > 0 ? toJsonString(formData.qualifications) : undefined,
         honors: formData.honors.length > 0 ? toJsonString(formData.honors) : undefined,
-        cases: formData.cases.length > 0 ? toJsonString(formData.cases) : undefined,
         images: formData.images.length > 0 ? toJsonString(formData.images) : undefined,
         status: formData.status,
         featured: formData.featured,
@@ -322,7 +318,6 @@ export function ManufacturerManagement() {
         mainBusiness: formData.mainBusiness || undefined,
         qualifications: formData.qualifications.length > 0 ? toJsonString(formData.qualifications) : undefined,
         honors: formData.honors.length > 0 ? toJsonString(formData.honors) : undefined,
-        cases: formData.cases.length > 0 ? toJsonString(formData.cases) : undefined,
         images: formData.images.length > 0 ? toJsonString(formData.images) : undefined,
         status: formData.status,
         featured: formData.featured,
@@ -611,7 +606,6 @@ export function ManufacturerManagement() {
               mainBusiness: selectedManufacturer.mainBusiness || '',
               qualifications: parseJsonArray(selectedManufacturer.qualifications),
               honors: parseJsonArray(selectedManufacturer.honors),
-              cases: parseJsonArray(selectedManufacturer.cases),
               images: parseJsonArray(selectedManufacturer.images),
               status: selectedManufacturer.status,
               featured: selectedManufacturer.featured,
@@ -737,7 +731,7 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
   };
 
   // Array field helpers
-  const handleArrayChange = (field: 'qualifications' | 'honors' | 'cases', value: string) => {
+  const handleArrayChange = (field: 'qualifications' | 'honors', value: string) => {
     const arr = value.split(',').map(s => s.trim()).filter(s => s);
     onFormChange({ target: { name: field, value: arr } });
   };
@@ -1021,17 +1015,6 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     placeholder="请输入荣誉资质，多个用逗号分隔"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">合作案例</label>
-                  <input
-                    type="text"
-                    value={formData.cases?.join(', ') || ''}
-                    onChange={(e) => handleArrayChange('cases', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="请输入合作案例，多个用逗号分隔"
-                  />
-                </div>
               </div>
             </div>
 
@@ -1157,7 +1140,6 @@ function ViewManufacturerModal({ manufacturer, onClose, onEdit, getStatusBadge }
   const images = parseJsonArray(manufacturer.images);
   const qualifications = parseJsonArray(manufacturer.qualifications);
   const honors = parseJsonArray(manufacturer.honors);
-  const cases = parseJsonArray(manufacturer.cases);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
@@ -1358,7 +1340,7 @@ function ViewManufacturerModal({ manufacturer, onClose, onEdit, getStatusBadge }
           )}
 
           {/* Certifications & Honors */}
-          {(qualifications.length > 0 || honors.length > 0 || cases.length > 0) && (
+          {(qualifications.length > 0 || honors.length > 0) && (
             <div className="mb-6">
               <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
                 <Award className="w-5 h-5 text-blue-600" />
@@ -1383,18 +1365,6 @@ function ViewManufacturerModal({ manufacturer, onClose, onEdit, getStatusBadge }
                     <div className="flex flex-wrap gap-2">
                       {honors.map((item: string, index: number) => (
                         <span key={index} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {cases.length > 0 && (
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="text-sm text-gray-600 mb-2">合作案例</div>
-                    <div className="flex flex-wrap gap-2">
-                      {cases.map((item: string, index: number) => (
-                        <span key={index} className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm">
                           {item}
                         </span>
                       ))}

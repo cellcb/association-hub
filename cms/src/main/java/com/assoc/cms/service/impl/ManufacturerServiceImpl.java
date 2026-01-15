@@ -171,7 +171,6 @@ public class ManufacturerServiceImpl implements ManufacturerService {
         manufacturer.setMainBusiness(request.getMainBusiness());
         manufacturer.setQualifications(request.getQualifications());
         manufacturer.setHonors(request.getHonors());
-        manufacturer.setCases(request.getCases());
         manufacturer.setImages(request.getImages());
 
         if (request.getFeatured() != null) {
@@ -187,7 +186,6 @@ public class ManufacturerServiceImpl implements ManufacturerService {
         fields.put("mainBusiness", nullToEmpty(m.getMainBusiness()));
         fields.put("qualifications", nullToEmpty(m.getQualifications()));
         fields.put("honors", nullToEmpty(m.getHonors()));
-        fields.put("cases", nullToEmpty(m.getCases()));
         fields.put("address", nullToEmpty(m.getAddress()));
 
         Map<String, Object> metadata = new HashMap<>();

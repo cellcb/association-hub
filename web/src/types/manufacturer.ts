@@ -43,7 +43,6 @@ export interface ManufacturerResponse {
   mainBusiness: string | null;
   qualifications: string | null;
   honors: string | null;
-  cases: string | null;
   images: string | null;
   status: ManufacturerStatus;
   views: number;
@@ -69,7 +68,6 @@ export interface ManufacturerRequest {
   mainBusiness?: string;
   qualifications?: string;
   honors?: string;
-  cases?: string;
   images?: string;
   status?: number;
   featured?: boolean;

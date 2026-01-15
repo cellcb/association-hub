@@ -65,9 +65,6 @@ public class Manufacturer extends AuditableEntity {
     @Column(columnDefinition = "TEXT")
     private String honors;
 
-    @Column(name = "cases", columnDefinition = "TEXT")
-    private String cases;
-
     @Column(columnDefinition = "TEXT")
     private String images;
 

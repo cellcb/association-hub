@@ -23,7 +23,6 @@ public class ManufacturerRequest {
     private String mainBusiness;
     private String qualifications;
     private String honors;
-    private String cases;
     private String images;
     private Integer status;
     private Boolean featured;

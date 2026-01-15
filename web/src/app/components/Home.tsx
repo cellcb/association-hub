@@ -101,7 +101,7 @@ const defaultStats: StatItem[] = [
 const defaultFeatures: FeatureItem[] = [
   { icon: 'FileText', title: '优秀案例', description: '展示行业典型案例与创新成果', color: 'bg-green-500', link: 'projects' },
   { icon: 'Calendar', title: '活动中心', description: '年度会议、沙龙、分享会等精彩活动', color: 'bg-purple-500', link: 'activities' },
-  { icon: 'Package', title: '产品展示', description: '泵阀管件等给排水专业产品', color: 'bg-orange-500', link: 'products' },
+  { icon: 'Package', title: '创新绿色产品', description: '泵阀管件等给排水专业产品', color: 'bg-orange-500', link: 'products' },
   { icon: 'Users', title: '专家风采', description: '汇聚行业顶尖专家，提供专业技术指导', color: 'bg-blue-500', link: 'experts' },
 ];
 

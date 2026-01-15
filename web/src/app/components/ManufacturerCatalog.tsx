@@ -418,24 +418,6 @@ export function ManufacturerCatalog({ initialManufacturerId }: ManufacturerCatal
                 </div>
               )}
 
-              {/* Cases */}
-              {parseJsonArray(manufacturerDetail.cases).length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-xl text-gray-900 mb-4 flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                    合作案例
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {parseJsonArray(manufacturerDetail.cases).map((caseItem, index) => (
-                      <div key={index} className="flex items-start gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                        <Building2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{caseItem}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Images Gallery */}
               {parseJsonArray(manufacturerDetail.images).length > 1 && (
                 <div className="mb-8">

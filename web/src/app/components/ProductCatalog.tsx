@@ -437,7 +437,7 @@ export function ProductCatalog({ initialProductId }: ProductCatalogProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl text-gray-900 mb-2">产品展示</h1>
+          <h1 className="text-2xl md:text-3xl text-gray-900 mb-2">创新绿色产品</h1>
           <p className="text-gray-600">最新技术产品与解决方案，促进供需对接</p>
         </div>
 
