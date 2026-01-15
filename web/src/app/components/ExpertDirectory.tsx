@@ -333,12 +333,6 @@ function ExpertCard({ expert, onViewDetail }: { expert: ExpertListResponse; onVi
             <span>{expert.email}</span>
           </div>
         )}
-        {expert.phone && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Phone className="w-4 h-4 flex-shrink-0" />
-            <span>{expert.phone}</span>
-          </div>
-        )}
       </div>
 
       {/* Action Button */}
@@ -434,12 +428,6 @@ function ExpertDetailModal({ expert, onClose }: { expert: ExpertResponse; onClos
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <Mail className="w-4 h-4 text-blue-600" />
                     <span>{expert.email}</span>
-                  </div>
-                )}
-                {expert.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Phone className="w-4 h-4 text-blue-600" />
-                    <span>{expert.phone}</span>
                   </div>
                 )}
                 {expert.location && (
@@ -588,15 +576,6 @@ function ExpertDetailModal({ expert, onClose }: { expert: ExpertResponse; onClos
               >
                 <Mail className="w-4 h-4" />
                 <span>发送咨询</span>
-              </a>
-            )}
-            {expert.phone && (
-              <a
-                href={`tel:${expert.phone}`}
-                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-              >
-                <Phone className="w-4 h-4" />
-                <span>电话联系</span>
               </a>
             )}
           </div>

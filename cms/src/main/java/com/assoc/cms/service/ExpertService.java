@@ -19,6 +19,17 @@ public interface ExpertService extends VectorSyncable {
 
     ExpertResponse getExpertById(Long id);
 
+    // Public methods - 不返回敏感信息
+    Page<ExpertListResponse> getPublicActiveExperts(Pageable pageable);
+
+    Page<ExpertListResponse> searchPublicExperts(String keyword, Pageable pageable);
+
+    Page<ExpertListResponse> getPublicExpertsByField(Long fieldId, Pageable pageable);
+
+    Page<ExpertListResponse> getPublicExpertsByFieldCode(String fieldCode, Pageable pageable);
+
+    ExpertResponse getPublicExpertById(Long id);
+
     // Admin methods
     Page<ExpertListResponse> getAllExperts(Integer status, Pageable pageable);
 

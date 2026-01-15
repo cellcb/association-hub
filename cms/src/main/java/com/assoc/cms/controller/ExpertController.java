@@ -32,13 +32,13 @@ public class ExpertController {
 
         Page<ExpertListResponse> result;
         if (keyword != null && !keyword.isEmpty()) {
-            result = expertService.searchExperts(keyword, pageable);
+            result = expertService.searchPublicExperts(keyword, pageable);
         } else if (fieldId != null) {
-            result = expertService.getExpertsByField(fieldId, pageable);
+            result = expertService.getPublicExpertsByField(fieldId, pageable);
         } else if (fieldCode != null && !fieldCode.isEmpty()) {
-            result = expertService.getExpertsByFieldCode(fieldCode, pageable);
+            result = expertService.getPublicExpertsByFieldCode(fieldCode, pageable);
         } else {
-            result = expertService.getActiveExperts(pageable);
+            result = expertService.getPublicActiveExperts(pageable);
         }
         return Result.success(result);
     }
@@ -46,6 +46,6 @@ public class ExpertController {
     @Operation(summary = "获取专家详情")
     @GetMapping("/{id}")
     public Result<ExpertResponse> getExpertById(@PathVariable Long id) {
-        return Result.success(expertService.getExpertById(id));
+        return Result.success(expertService.getPublicExpertById(id));
     }
 }

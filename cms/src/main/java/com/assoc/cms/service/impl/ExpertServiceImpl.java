@@ -68,6 +68,38 @@ public class ExpertServiceImpl implements ExpertService {
         return toResponse(expert);
     }
 
+    // Public methods - 不返回敏感信息
+    @Override
+    public Page<ExpertListResponse> getPublicActiveExperts(Pageable pageable) {
+        return expertRepository.findByStatus(STATUS_ACTIVE, pageable)
+                .map(this::toPublicListResponse);
+    }
+
+    @Override
+    public Page<ExpertListResponse> searchPublicExperts(String keyword, Pageable pageable) {
+        return expertRepository.searchByKeyword(keyword, STATUS_ACTIVE, pageable)
+                .map(this::toPublicListResponse);
+    }
+
+    @Override
+    public Page<ExpertListResponse> getPublicExpertsByField(Long fieldId, Pageable pageable) {
+        return expertRepository.findByExpertiseFieldId(fieldId, pageable)
+                .map(this::toPublicListResponse);
+    }
+
+    @Override
+    public Page<ExpertListResponse> getPublicExpertsByFieldCode(String fieldCode, Pageable pageable) {
+        return expertRepository.findByExpertiseFieldCode(fieldCode, pageable)
+                .map(this::toPublicListResponse);
+    }
+
+    @Override
+    public ExpertResponse getPublicExpertById(Long id) {
+        Expert expert = expertRepository.findByIdWithExpertise(id)
+                .orElseThrow(() -> new ResourceNotFoundException("专家不存在: " + id));
+        return toPublicResponse(expert);
+    }
+
     @Override
     public Page<ExpertListResponse> getAllExperts(Integer status, Pageable pageable) {
         if (status != null) {
@@ -160,7 +192,7 @@ public class ExpertServiceImpl implements ExpertService {
         response.setStatus(expert.getStatus());
         response.setAchievements(expert.getAchievements());
         response.setEmail(expert.getEmail());
-        response.setPhone(maskPhone(expert.getPhone()));
+        response.setPhone(expert.getPhone());
         if (expert.getExpertiseFields() != null) {
             response.setExpertiseFields(expert.getExpertiseFields().stream()
                     .map(this::toFieldResponse)
@@ -169,14 +201,16 @@ public class ExpertServiceImpl implements ExpertService {
         return response;
     }
 
-    /**
-     * 手机号脱敏：138****1234
-     */
-    private String maskPhone(String phone) {
-        if (phone == null || phone.length() < 7) {
-            return phone;
-        }
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    private ExpertListResponse toPublicListResponse(Expert expert) {
+        ExpertListResponse response = toListResponse(expert);
+        response.setPhone(null);  // 公共接口不返回手机号
+        return response;
+    }
+
+    private ExpertResponse toPublicResponse(Expert expert) {
+        ExpertResponse response = toResponse(expert);
+        response.setPhone(null);  // 公共接口不返回手机号
+        return response;
     }
 
     private ExpertResponse toResponse(Expert expert) {
