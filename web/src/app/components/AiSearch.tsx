@@ -123,7 +123,7 @@ type SearchStatus = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
 const SUGGESTED_QUESTIONS = [
   '最近有什么活动',
   '找建筑给排水产品',
-  '专家咨询',
+  '找供水领域的专家',
 ];
 
 const FOLLOW_UP_SUGGESTIONS = [
