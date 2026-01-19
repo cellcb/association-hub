@@ -55,13 +55,8 @@ public class AuthController {
     public Result<LoginResponse> login(
         @Parameter(description = "登录请求信息", required = true)
         @Valid @RequestBody LoginRequest loginRequest) {
-        try {
-            LoginResponse response = authService.login(loginRequest);
-            return Result.success("登录成功", response);
-        } catch (Exception e) {
-            log.error("Login failed for user: {}, error: {}", loginRequest.getUsername(), e.getMessage());
-            return Result.error(401, e.getMessage());
-        }
+        LoginResponse response = authService.login(loginRequest);
+        return Result.success("登录成功", response);
     }
     
     /**
@@ -87,17 +82,12 @@ public class AuthController {
     public Result<LoginResponse> refreshToken(
         @Parameter(description = "刷新令牌请求", required = true)
         @RequestBody RefreshTokenRequest request) {
-        try {
-            if (!StringUtils.hasText(request.getRefreshToken())) {
-                return Result.error(400, "Refresh token 不能为空");
-            }
-            
-            LoginResponse response = authService.refreshToken(request.getRefreshToken());
-            return Result.success("Token 刷新成功", response);
-        } catch (Exception e) {
-            log.error("Token refresh failed: {}", e.getMessage());
-            return Result.error(401, e.getMessage());
+        if (!StringUtils.hasText(request.getRefreshToken())) {
+            return Result.error(400, "Refresh token 不能为空");
         }
+
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
+        return Result.success("Token 刷新成功", response);
     }
     
     /**
@@ -122,18 +112,13 @@ public class AuthController {
     @GetMapping("/validate")
     public Result<Boolean> validateToken(
         @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            String token = extractTokenFromRequest(request);
-            if (token == null) {
-                return Result.error(400, "Token 不能为空");
-            }
-            
-            boolean isValid = authService.validateToken(token);
-            return Result.success("Token 验证完成", isValid);
-        } catch (Exception e) {
-            log.error("Token validation failed: {}", e.getMessage());
-            return Result.error(401, e.getMessage());
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            return Result.error(400, "Token 不能为空");
         }
+
+        boolean isValid = authService.validateToken(token);
+        return Result.success("Token 验证完成", isValid);
     }
     
     /**
@@ -158,18 +143,13 @@ public class AuthController {
     @GetMapping("/userinfo")
     public Result<LoginResponse.UserInfo> getUserInfo(
         @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            String token = extractTokenFromRequest(request);
-            if (token == null) {
-                return Result.error(400, "Token 不能为空");
-            }
-            
-            LoginResponse.UserInfo userInfo = authService.getUserInfo(token);
-            return Result.success("获取用户信息成功", userInfo);
-        } catch (Exception e) {
-            log.error("Get user info failed: {}", e.getMessage());
-            return Result.error(401, e.getMessage());
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            return Result.error(400, "Token 不能为空");
         }
+
+        LoginResponse.UserInfo userInfo = authService.getUserInfo(token);
+        return Result.success("获取用户信息成功", userInfo);
     }
     
     /**

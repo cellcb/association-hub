@@ -54,13 +54,8 @@ public class RoleController {
     public Result<RoleResponse> createRole(
         @Parameter(description = "角色创建请求信息", required = true)
         @Valid @RequestBody RoleRequest request) {
-        try {
-            RoleResponse response = roleService.createRole(request);
-            return Result.success("角色创建成功", response);
-        } catch (Exception e) {
-            log.error("Create role failed: {}", e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        RoleResponse response = roleService.createRole(request);
+        return Result.success("角色创建成功", response);
     }
     
     @Operation(
@@ -82,13 +77,8 @@ public class RoleController {
     public Result<RoleResponse> getRoleById(
         @Parameter(description = "角色ID", required = true)
         @PathVariable Long id) {
-        try {
-            RoleResponse response = roleService.getRoleById(id);
-            return Result.success("获取角色成功", response);
-        } catch (Exception e) {
-            log.error("Get role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(404, e.getMessage());
-        }
+        RoleResponse response = roleService.getRoleById(id);
+        return Result.success("获取角色成功", response);
     }
     
     @Operation(
@@ -105,13 +95,8 @@ public class RoleController {
     public Result<Page<RoleResponse>> getAllRoles(
         @Parameter(description = "分页参数", hidden = true)
         @PageableDefault(size = 20) Pageable pageable) {
-        try {
-            Page<RoleResponse> response = roleService.getAllRoles(pageable);
-            return Result.success("获取角色列表成功", response);
-        } catch (Exception e) {
-            log.error("Get roles failed: {}", e.getMessage());
-            return Result.error(500, e.getMessage());
-        }
+        Page<RoleResponse> response = roleService.getAllRoles(pageable);
+        return Result.success("获取角色列表成功", response);
     }
     
     @Operation(
@@ -140,13 +125,8 @@ public class RoleController {
         @PathVariable Long id,
         @Parameter(description = "角色更新请求信息", required = true)
         @Valid @RequestBody RoleRequest request) {
-        try {
-            RoleResponse response = roleService.updateRole(id, request);
-            return Result.success("角色更新成功", response);
-        } catch (Exception e) {
-            log.error("Update role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        RoleResponse response = roleService.updateRole(id, request);
+        return Result.success("角色更新成功", response);
     }
     
     @Operation(
@@ -168,13 +148,8 @@ public class RoleController {
     public Result<Void> deleteRole(
         @Parameter(description = "角色ID", required = true)
         @PathVariable Long id) {
-        try {
-            roleService.deleteRole(id);
-            return Result.success("角色删除成功", null);
-        } catch (Exception e) {
-            log.error("Delete role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(404, e.getMessage());
-        }
+        roleService.deleteRole(id);
+        return Result.success("角色删除成功", null);
     }
     
     @Operation(
@@ -203,14 +178,8 @@ public class RoleController {
         @PathVariable("id") Long id,
         @Parameter(description = "权限ID列表", required = true)
         @Valid @RequestBody RolePermissionRequest request) {
-        try {
-            // Execute update but do not return role info on success
-            roleService.assignPermissionsToRole(id, request.getPermissionIds());
-            return Result.success("角色权限设置成功", null);
-        } catch (Exception e) {
-            log.error("Assign permissions to role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        roleService.assignPermissionsToRole(id, request.getPermissionIds());
+        return Result.success("角色权限设置成功", null);
     }
     
     @Operation(
@@ -238,14 +207,8 @@ public class RoleController {
         @PathVariable Long id,
         @Parameter(description = "权限ID列表", required = true)
         @Valid @RequestBody RolePermissionRequest request) {
-        try {
-            // Execute update but do not return role info on success
-            roleService.addPermissionsToRole(id, request.getPermissionIds());
-            return Result.success("角色权限添加成功", null);
-        } catch (Exception e) {
-            log.error("Add permissions to role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        roleService.addPermissionsToRole(id, request.getPermissionIds());
+        return Result.success("角色权限添加成功", null);
     }
     
     @Operation(
@@ -273,14 +236,8 @@ public class RoleController {
         @PathVariable Long id,
         @Parameter(description = "权限ID列表", required = true)
         @Valid @RequestBody RolePermissionRequest request) {
-        try {
-            // Execute update but do not return role info on success
-            roleService.removePermissionsFromRole(id, request.getPermissionIds());
-            return Result.success("角色权限移除成功", null);
-        } catch (Exception e) {
-            log.error("Remove permissions from role failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        roleService.removePermissionsFromRole(id, request.getPermissionIds());
+        return Result.success("角色权限移除成功", null);
     }
     
     @Operation(
@@ -301,12 +258,7 @@ public class RoleController {
     public Result<Set<PermissionResponse>> getRolePermissions(
         @Parameter(description = "角色ID", required = true)
         @PathVariable Long id) {
-        try {
-            Set<PermissionResponse> permissions = roleService.getRolePermissions(id);
-            return Result.success("获取角色权限成功", permissions);
-        } catch (Exception e) {
-            log.error("Get role permissions failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(404, e.getMessage());
-        }
+        Set<PermissionResponse> permissions = roleService.getRolePermissions(id);
+        return Result.success("获取角色权限成功", permissions);
     }
 }

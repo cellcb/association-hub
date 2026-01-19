@@ -78,8 +78,8 @@ public class AuthService {
             log.warn("Account disabled for user: {}", loginRequest.getUsername());
             throw new AuthenticationException("账户已被禁用");
         } catch (Exception e) {
-            log.error("Login failed for user: {}, error: {}", loginRequest.getUsername(), e.getMessage());
-            throw new AuthenticationException("登录失败: " + e.getMessage());
+            log.error("Login failed for user: {}", loginRequest.getUsername());
+            throw new RuntimeException("登录失败", e);
         }
     }
     
@@ -120,9 +120,11 @@ public class AuthService {
             log.info("Token refreshed successfully for user: {}", username);
             return response;
             
+        } catch (AuthenticationException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Token refresh failed: {}", e.getMessage());
-            throw new AuthenticationException("Token 刷新失败: " + e.getMessage());
+            log.error("Token refresh failed");
+            throw new RuntimeException("Token 刷新失败", e);
         }
     }
     
@@ -160,9 +162,11 @@ public class AuthService {
                     .roles(user.getRoleCodes())
                     .build();
             
+        } catch (AuthenticationException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Get user info failed: {}", e.getMessage());
-            throw new AuthenticationException("获取用户信息失败: " + e.getMessage());
+            log.error("Get user info failed");
+            throw new RuntimeException("获取用户信息失败", e);
         }
     }
 }

@@ -48,13 +48,8 @@ public class PermissionController {
     public Result<PermissionResponse> createPermission(
         @Parameter(description = "权限创建请求信息", required = true)
         @Valid @RequestBody PermissionRequest request) {
-        try {
-            PermissionResponse response = permissionService.createPermission(request);
-            return Result.success("权限创建成功", response);
-        } catch (Exception e) {
-            log.error("Create permission failed: {}", e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        PermissionResponse response = permissionService.createPermission(request);
+        return Result.success("权限创建成功", response);
     }
     
     @Operation(
@@ -76,13 +71,8 @@ public class PermissionController {
     public Result<PermissionResponse> getPermissionById(
         @Parameter(description = "权限ID", required = true)
         @PathVariable Long id) {
-        try {
-            PermissionResponse response = permissionService.getPermissionById(id);
-            return Result.success("获取权限成功", response);
-        } catch (Exception e) {
-            log.error("Get permission failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(404, e.getMessage());
-        }
+        PermissionResponse response = permissionService.getPermissionById(id);
+        return Result.success("获取权限成功", response);
     }
     
     @Operation(
@@ -99,13 +89,8 @@ public class PermissionController {
     public Result<Page<PermissionResponse>> getAllPermissions(
         @Parameter(description = "分页参数", hidden = true)
         @PageableDefault(size = 20) Pageable pageable) {
-        try {
-            Page<PermissionResponse> response = permissionService.getAllPermissions(pageable);
-            return Result.success("获取权限列表成功", response);
-        } catch (Exception e) {
-            log.error("Get permissions failed: {}", e.getMessage());
-            return Result.error(500, e.getMessage());
-        }
+        Page<PermissionResponse> response = permissionService.getAllPermissions(pageable);
+        return Result.success("获取权限列表成功", response);
     }
     
     @Operation(
@@ -133,13 +118,8 @@ public class PermissionController {
         @PathVariable Long id,
         @Parameter(description = "权限更新请求信息", required = true)
         @Valid @RequestBody PermissionRequest request) {
-        try {
-            PermissionResponse response = permissionService.updatePermission(id, request);
-            return Result.success("权限更新成功", response);
-        } catch (Exception e) {
-            log.error("Update permission failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(400, e.getMessage());
-        }
+        PermissionResponse response = permissionService.updatePermission(id, request);
+        return Result.success("权限更新成功", response);
     }
     
     @Operation(
@@ -160,12 +140,7 @@ public class PermissionController {
     public Result<Void> deletePermission(
         @Parameter(description = "权限ID", required = true)
         @PathVariable Long id) {
-        try {
-            permissionService.deletePermission(id);
-            return Result.success("权限删除成功", null);
-        } catch (Exception e) {
-            log.error("Delete permission failed for id: {}, error: {}", id, e.getMessage());
-            return Result.error(404, e.getMessage());
-        }
+        permissionService.deletePermission(id);
+        return Result.success("权限删除成功", null);
     }
 }

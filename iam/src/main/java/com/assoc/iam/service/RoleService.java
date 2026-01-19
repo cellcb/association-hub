@@ -1,5 +1,7 @@
 package com.assoc.iam.service;
 
+import com.assoc.common.exception.BusinessException;
+import com.assoc.common.exception.ResourceNotFoundException;
 import com.assoc.iam.dto.RoleRequest;
 import com.assoc.iam.dto.RoleResponse;
 import com.assoc.iam.entity.Role;
@@ -25,7 +27,7 @@ public class RoleService {
     
     public RoleResponse createRole(RoleRequest request) {
         if (roleRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Role code already exists: " + request.getCode());
+            throw new BusinessException(409, "角色编码已存在");
         }
         
         Role role = new Role();
@@ -47,7 +49,7 @@ public class RoleService {
     @Transactional(readOnly = true)
     public RoleResponse getRoleById(Long id) {
         Role role = roleRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", id));
         return convertToResponse(role);
     }
     
@@ -59,10 +61,10 @@ public class RoleService {
     
     public RoleResponse updateRole(Long id, RoleRequest request) {
         Role role = roleRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", id));
         
         if (!role.getCode().equals(request.getCode()) && roleRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Role code already exists: " + request.getCode());
+            throw new BusinessException(409, "角色编码已存在");
         }
         
         role.setName(request.getName());
@@ -82,7 +84,7 @@ public class RoleService {
     
     public void deleteRole(Long id) {
         Role role = roleRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", id));
         roleRepository.delete(role);
     }
     
@@ -105,13 +107,13 @@ public class RoleService {
     
     public RoleResponse assignPermissionsToRole(Long roleId, Set<Long> permissionIds) {
         Role role = roleRepository.findById(roleId)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", roleId));
         
         Set<Permission> permissions = permissionRepository.findAllById(permissionIds)
             .stream().collect(Collectors.toSet());
         
         if (permissions.size() != permissionIds.size()) {
-            throw new RuntimeException("Some permissions were not found");
+            throw new BusinessException(400, "部分权限不存在");
         }
         
         role.setPermissions(permissions);
@@ -121,13 +123,13 @@ public class RoleService {
     
     public RoleResponse addPermissionsToRole(Long roleId, Set<Long> permissionIds) {
         Role role = roleRepository.findById(roleId)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", roleId));
         
         Set<Permission> newPermissions = permissionRepository.findAllById(permissionIds)
             .stream().collect(Collectors.toSet());
         
         if (newPermissions.size() != permissionIds.size()) {
-            throw new RuntimeException("Some permissions were not found");
+            throw new BusinessException(400, "部分权限不存在");
         }
         
         if (role.getPermissions() == null) {
@@ -141,7 +143,7 @@ public class RoleService {
     
     public RoleResponse removePermissionsFromRole(Long roleId, Set<Long> permissionIds) {
         Role role = roleRepository.findById(roleId)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", roleId));
         
         if (role.getPermissions() != null) {
             role.getPermissions().removeIf(permission -> permissionIds.contains(permission.getId()));
@@ -154,7 +156,7 @@ public class RoleService {
     @Transactional(readOnly = true)
     public Set<com.assoc.iam.dto.PermissionResponse> getRolePermissions(Long roleId) {
         Role role = roleRepository.findById(roleId)
-            .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
+            .orElseThrow(() -> new ResourceNotFoundException("角色", roleId));
         
         if (role.getPermissions() == null) {
             return new java.util.HashSet<>();

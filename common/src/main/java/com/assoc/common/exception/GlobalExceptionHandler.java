@@ -28,8 +28,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException e) {
-        log.warn("Business exception: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        try {
+            status = HttpStatus.valueOf(e.getCode());
+        } catch (Exception ignore) {
+            // keep default
+        }
+        log.warn("Business exception, code={}, message={}", e.getCode(), e.getMessage());
+        return ResponseEntity.status(status)
                 .body(Result.error(e.getCode(), e.getMessage()));
     }
 
@@ -73,9 +79,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.error("Illegal argument error: {}", e.getMessage());
-        e.printStackTrace();  // Force print full stack trace
-        return Result.error(400, e.getMessage());
+        log.warn("Illegal argument error: {}", e.getMessage());
+        return Result.error(400, "请求参数错误");
     }
 
     /**
@@ -104,8 +109,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleRuntimeException(RuntimeException e) {
-        log.error("Runtime error: {}", e.getMessage(), e);
-        return Result.error(500, "系统内部错误: " + e.getMessage());
+        log.error("Runtime error", e);
+        return Result.error(500, "系统内部错误");
     }
 
     /**
@@ -114,7 +119,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleGeneralException(Exception e) {
-        log.error("Unexpected error: {}", e.getMessage(), e);
+        log.error("Unexpected error", e);
         return Result.error(500, "系统发生未知错误");
     }
 }

@@ -1,5 +1,7 @@
 package com.assoc.iam.service;
 
+import com.assoc.common.exception.BusinessException;
+import com.assoc.common.exception.ResourceNotFoundException;
 import com.assoc.iam.dto.DepartmentRequest;
 import com.assoc.iam.dto.DepartmentResponse;
 import com.assoc.iam.dto.DepartmentTreeResponse;
@@ -89,7 +91,7 @@ public class DepartmentService {
     @Transactional
     public DepartmentResponse updateDepartment(Long id, DepartmentRequest request) {
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("部门不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException("部门", id));
         
         validateDepartmentRequest(request, id);
         
@@ -114,14 +116,14 @@ public class DepartmentService {
     @Transactional
     public void deleteDepartment(Long id) {
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("部门不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException("部门", id));
         
         if (departmentRepository.hasChildren(id)) {
-            throw new IllegalArgumentException("存在子部门，无法删除");
+            throw new BusinessException(400, "存在子部门，无法删除");
         }
         
         if (department.hasUsers()) {
-            throw new IllegalArgumentException("部门下存在用户，无法删除");
+            throw new BusinessException(400, "部门下存在用户，无法删除");
         }
         
         departmentRepository.delete(department);
@@ -131,14 +133,14 @@ public class DepartmentService {
     @Transactional
     public void moveDepartment(Long id, Long newParentId) {
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("部门不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException("部门", id));
         
         if (newParentId != null) {
-            Department newParent = departmentRepository.findById(newParentId)
-                    .orElseThrow(() -> new IllegalArgumentException("目标父部门不存在"));
+            departmentRepository.findById(newParentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("目标父部门", newParentId));
             
             if (isDescendant(newParentId, id)) {
-                throw new IllegalArgumentException("不能移动到自己的子部门");
+                throw new BusinessException(400, "不能移动到自己的子部门");
             }
         }
         
@@ -158,17 +160,17 @@ public class DepartmentService {
         if (departmentRepository.existsByCode(request.getCode())) {
             Optional<Department> existing = departmentRepository.findByCode(request.getCode());
             if (existing.isPresent() && (excludeId == null || !existing.get().getId().equals(excludeId))) {
-                throw new IllegalArgumentException("部门编码已存在");
+                throw new BusinessException(409, "部门编码已存在");
             }
         }
         
         if (request.getParentId() != null) {
             if (!departmentRepository.existsById(request.getParentId())) {
-                throw new IllegalArgumentException("父部门不存在");
+                throw new BusinessException(400, "父部门不存在");
             }
             
             if (excludeId != null && request.getParentId().equals(excludeId)) {
-                throw new IllegalArgumentException("不能将部门设置为自己的父部门");
+                throw new BusinessException(400, "不能将部门设置为自己的父部门");
             }
         }
     }

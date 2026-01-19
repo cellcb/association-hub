@@ -255,12 +255,8 @@ public class DepartmentController {
                 )
             )
             @Valid @RequestBody DepartmentRequest request) {
-        try {
-            DepartmentResponse department = departmentService.createDepartment(request);
-            return Result.success("部门创建成功", department);
-        } catch (IllegalArgumentException e) {
-            return Result.error(400, e.getMessage());
-        }
+        DepartmentResponse department = departmentService.createDepartment(request);
+        return Result.success("部门创建成功", department);
     }
     
     @Operation(
@@ -306,12 +302,8 @@ public class DepartmentController {
                 )
             )
             @Valid @RequestBody DepartmentRequest request) {
-        try {
-            DepartmentResponse department = departmentService.updateDepartment(id, request);
-            return Result.success("部门更新成功", department);
-        } catch (IllegalArgumentException e) {
-            return Result.error(400, e.getMessage());
-        }
+        DepartmentResponse department = departmentService.updateDepartment(id, request);
+        return Result.success("部门更新成功", department);
     }
     
     @Operation(
@@ -348,12 +340,8 @@ public class DepartmentController {
                 required = true,
                 example = "1"
             ) @PathVariable Long id) {
-        try {
-            departmentService.deleteDepartment(id);
-            return Result.success();
-        } catch (IllegalArgumentException e) {
-            return Result.error(400, e.getMessage());
-        }
+        departmentService.deleteDepartment(id);
+        return Result.success();
     }
     
     @Operation(
@@ -401,12 +389,8 @@ public class DepartmentController {
                 )
             )
             @RequestBody Map<String, Long> request) {
-        try {
-            Long newParentId = request.get("newParentId");
-            departmentService.moveDepartment(id, newParentId);
-            return Result.success();
-        } catch (IllegalArgumentException e) {
-            return Result.error(400, e.getMessage());
-        }
+        Long newParentId = request.get("newParentId");
+        departmentService.moveDepartment(id, newParentId);
+        return Result.success();
     }
 }

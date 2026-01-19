@@ -107,8 +107,8 @@ logging:
     org.springframework.web: ${WEB_LOG_LEVEL:INFO}
     org.hibernate.orm.connections.pooling: WARN
   pattern:
-    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr(%-5level){highlight} %clr([%logger{36}]){cyan} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr([%thread]){magenta} %clr([%X{traceId}]){yellow} %clr(%-5level){highlight} %clr([%logger{36}]){cyan} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId}] %-5level [%logger{36}] - %msg%n"
 
 # Management Configuration
 management:

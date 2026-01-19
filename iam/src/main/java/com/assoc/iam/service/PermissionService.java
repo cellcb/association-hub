@@ -1,5 +1,7 @@
 package com.assoc.iam.service;
 
+import com.assoc.common.exception.BusinessException;
+import com.assoc.common.exception.ResourceNotFoundException;
 import com.assoc.iam.dto.PermissionRequest;
 import com.assoc.iam.dto.PermissionResponse;
 import com.assoc.iam.entity.Permission;
@@ -19,7 +21,7 @@ public class PermissionService {
     
     public PermissionResponse createPermission(PermissionRequest request) {
         if (permissionRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Permission code already exists: " + request.getCode());
+            throw new BusinessException(409, "权限编码已存在");
         }
         
         Permission permission = new Permission();
@@ -37,7 +39,7 @@ public class PermissionService {
     @Transactional(readOnly = true)
     public PermissionResponse getPermissionById(Long id) {
         Permission permission = permissionRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Permission not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("权限", id));
         return convertToResponse(permission);
     }
     
@@ -49,10 +51,10 @@ public class PermissionService {
     
     public PermissionResponse updatePermission(Long id, PermissionRequest request) {
         Permission permission = permissionRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Permission not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("权限", id));
         
         if (!permission.getCode().equals(request.getCode()) && permissionRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Permission code already exists: " + request.getCode());
+            throw new BusinessException(409, "权限编码已存在");
         }
         
         permission.setName(request.getName());
@@ -68,7 +70,7 @@ public class PermissionService {
     
     public void deletePermission(Long id) {
         Permission permission = permissionRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Permission not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("权限", id));
         permissionRepository.delete(permission);
     }
     
