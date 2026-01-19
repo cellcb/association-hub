@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -145,6 +146,11 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
     @Override
     @Transactional
     public void rejectApplication(Long memberId, String reason) {
+        // Validate reject reason length
+        if (reason != null && reason.length() > 500) {
+            throw new BusinessException("拒绝原因不能超过500字符");
+        }
+
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException("会员不存在: " + memberId));
 
@@ -218,10 +224,18 @@ public class MemberApplicationServiceImpl implements MemberApplicationService {
         organization.setContactPhone(data.getContactPhone() != null ? data.getContactPhone() : phone);
         organization.setContactEmail(data.getContactEmail() != null ? data.getContactEmail() : email);
         if (data.getEstablishmentDate() != null && !data.getEstablishmentDate().isBlank()) {
-            organization.setEstablishmentDate(LocalDate.parse(data.getEstablishmentDate()));
+            try {
+                organization.setEstablishmentDate(LocalDate.parse(data.getEstablishmentDate()));
+            } catch (DateTimeParseException e) {
+                throw new BusinessException("成立日期格式错误，请使用 yyyy-MM-dd 格式");
+            }
         }
         if (data.getRegisteredCapital() != null && !data.getRegisteredCapital().isBlank()) {
-            organization.setRegisteredCapital(new BigDecimal(data.getRegisteredCapital()));
+            try {
+                organization.setRegisteredCapital(new BigDecimal(data.getRegisteredCapital()));
+            } catch (NumberFormatException e) {
+                throw new BusinessException("注册资本格式错误，请输入有效数字");
+            }
         }
         organization.setEmployeeCount(data.getEmployeeCount());
         organization.setBusinessScope(data.getBusinessScope());

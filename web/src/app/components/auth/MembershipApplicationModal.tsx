@@ -84,6 +84,13 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
 
   if (!isOpen) return null;
 
+  // Validation regex patterns
+  const usernameRegex = /^[a-zA-Z0-9_]+$/;
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const idCardRegex = /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/;
+  const socialCreditCodeRegex = /^[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}$/;
+
   const handleIndividualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -92,6 +99,14 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
     if (currentStep === 1) {
       if (!accountForm.username || accountForm.username.length < 3) {
         setError('用户名至少3位');
+        return;
+      }
+      if (accountForm.username.length > 20) {
+        setError('用户名不能超过20位');
+        return;
+      }
+      if (!usernameRegex.test(accountForm.username)) {
+        setError('用户名只能包含字母、数字和下划线');
         return;
       }
       if (!accountForm.password || accountForm.password.length < 6) {
@@ -106,7 +121,26 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
       return;
     }
 
-    if (currentStep < 4) {
+    // 第二步验证基本信息
+    if (currentStep === 2) {
+      if (!phoneRegex.test(individualForm.phone)) {
+        setError('请输入有效的11位手机号码');
+        return;
+      }
+      if (!emailRegex.test(individualForm.email)) {
+        setError('请输入有效的邮箱地址');
+        return;
+      }
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+
+    // 第三步验证详细资料
+    if (currentStep === 3) {
+      if (individualForm.idCard && !idCardRegex.test(individualForm.idCard)) {
+        setError('请输入有效的18位身份证号码');
+        return;
+      }
       setCurrentStep(currentStep + 1);
       return;
     }
@@ -176,6 +210,14 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
         setError('用户名至少3位');
         return;
       }
+      if (accountForm.username.length > 20) {
+        setError('用户名不能超过20位');
+        return;
+      }
+      if (!usernameRegex.test(accountForm.username)) {
+        setError('用户名只能包含字母、数字和下划线');
+        return;
+      }
       if (!accountForm.password || accountForm.password.length < 6) {
         setError('密码长度至少6位');
         return;
@@ -188,7 +230,26 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
       return;
     }
 
-    if (currentStep < 4) {
+    // 第二步验证基本信息
+    if (currentStep === 2) {
+      if (!phoneRegex.test(organizationForm.contactPhone)) {
+        setError('请输入有效的11位手机号码');
+        return;
+      }
+      if (!emailRegex.test(organizationForm.contactEmail)) {
+        setError('请输入有效的邮箱地址');
+        return;
+      }
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+
+    // 第三步验证详细资料
+    if (currentStep === 3) {
+      if (organizationForm.socialCreditCode && !socialCreditCodeRegex.test(organizationForm.socialCreditCode)) {
+        setError('请输入有效的18位统一社会信用代码');
+        return;
+      }
       setCurrentStep(currentStep + 1);
       return;
     }
@@ -364,8 +425,9 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         value={accountForm.username}
                         onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="设置登录用户名（至少3位）"
+                        placeholder="设置登录用户名（3-20位，字母数字下划线）"
                         minLength={3}
+                        maxLength={20}
                       />
                     </div>
                     <div></div>
@@ -377,8 +439,9 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         value={accountForm.password}
                         onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="设置密码（至少6位）"
+                        placeholder="设置密码（6-50位）"
                         minLength={6}
+                        maxLength={50}
                       />
                     </div>
                     <div>
@@ -391,6 +454,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="再次输入密码"
                         minLength={6}
+                        maxLength={50}
                       />
                     </div>
                   </div>
@@ -449,6 +513,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setIndividualForm({ ...individualForm, name: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="请输入您的姓名"
+                          maxLength={50}
                         />
                       </div>
 
@@ -476,6 +541,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                             onChange={(e) => setIndividualForm({ ...individualForm, phone: e.target.value })}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="请输入手机号码"
+                            maxLength={20}
                           />
                         </div>
                       </div>
@@ -491,6 +557,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                             onChange={(e) => setIndividualForm({ ...individualForm, email: e.target.value })}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="请输入邮箱地址"
+                            maxLength={100}
                           />
                         </div>
                       </div>
@@ -504,6 +571,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setIndividualForm({ ...individualForm, organization: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="请输入所在单位"
+                          maxLength={200}
                         />
                       </div>
 
@@ -516,9 +584,17 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setIndividualForm({ ...individualForm, position: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="请输入职务"
+                          maxLength={100}
                         />
                       </div>
                     </div>
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -560,6 +636,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setIndividualForm({ ...individualForm, title: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="如：高级工程师、教授等"
+                          maxLength={100}
                         />
                       </div>
 
@@ -586,7 +663,8 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         value={individualForm.experience}
                         onChange={(e) => setIndividualForm({ ...individualForm, experience: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="请简要描述您的工作经历"
+                        placeholder="请简要描述您的工作经历（最多500字）"
+                        maxLength={500}
                       />
                     </div>
 
@@ -600,6 +678,13 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         placeholder="请简要描述您的主要成果或业绩"
                       />
                     </div>
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -737,6 +822,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         onChange={(e) => setOrganizationForm({ ...organizationForm, organizationName: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="请输入单位全称"
+                        maxLength={200}
                       />
                     </div>
 
@@ -779,6 +865,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setOrganizationForm({ ...organizationForm, contactPerson: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="请输入联系人姓名"
+                          maxLength={50}
                         />
                       </div>
 
@@ -793,6 +880,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                             onChange={(e) => setOrganizationForm({ ...organizationForm, contactPhone: e.target.value })}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="请输入联系电话"
+                            maxLength={20}
                           />
                         </div>
                       </div>
@@ -808,10 +896,18 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                             onChange={(e) => setOrganizationForm({ ...organizationForm, contactEmail: e.target.value })}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="请输入联系邮箱"
+                            maxLength={100}
                           />
                         </div>
                       </div>
                     </div>
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -828,7 +924,8 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           value={organizationForm.socialCreditCode}
                           onChange={(e) => setOrganizationForm({ ...organizationForm, socialCreditCode: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="请输入统一社会信用代码"
+                          placeholder="请输入18位统一社会信用代码"
+                          maxLength={30}
                         />
                       </div>
 
@@ -840,6 +937,7 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                           onChange={(e) => setOrganizationForm({ ...organizationForm, legalRepresentative: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="请输入法定代表人"
+                          maxLength={50}
                         />
                       </div>
 
@@ -856,11 +954,12 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                       <div>
                         <label className="block text-sm text-gray-700 mb-2">员工人数</label>
                         <input
-                          type="text"
+                          type="number"
                           value={organizationForm.employeeCount}
                           onChange={(e) => setOrganizationForm({ ...organizationForm, employeeCount: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="如：50-100人"
+                          placeholder="请输入员工人数"
+                          min={0}
                         />
                       </div>
                     </div>
@@ -886,6 +985,13 @@ export function MembershipApplicationModal({ isOpen, onClose, onSubmitSuccess }:
                         placeholder="请简要描述主要项目或业绩"
                       />
                     </div>
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                        {error}
+                      </div>
+                    )}
                   </div>
                 )}
 
