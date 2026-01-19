@@ -42,6 +42,7 @@ export function ProjectManagement() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   const [formData, setFormData] = useState<ProjectFormData>(getInitialFormData());
 
@@ -128,6 +129,7 @@ export function ProjectManagement() {
 
   const handleAdd = () => {
     setFormData(getInitialFormData());
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -149,6 +151,7 @@ export function ProjectManagement() {
       if (result.success && result.data) {
         setSelectedProject(result.data);
         setFormData(projectToFormData(result.data));
+        setFieldErrors({});
         setShowEditModal(true);
       }
     } catch (err) {
@@ -168,9 +171,23 @@ export function ProjectManagement() {
     }
   };
 
+  // Parse validation errors from backend response
+  const parseValidationErrors = (result: { fieldErrors?: Record<string, string>; errors?: Record<string, string> }) => {
+    if (result.fieldErrors) {
+      setFieldErrors(result.fieldErrors);
+      return true;
+    }
+    if (result.errors) {
+      setFieldErrors(result.errors);
+      return true;
+    }
+    return false;
+  };
+
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request = formDataToRequest(formData);
       const result = await createProject(request);
@@ -178,7 +195,10 @@ export function ProjectManagement() {
         setShowAddModal(false);
         fetchProjects();
       } else {
-        setError(result.message || '创建失败');
+        // Try to parse field-level validation errors
+        if (!parseValidationErrors(result as any)) {
+          setError(result.message || '创建失败');
+        }
       }
     } catch (err) {
       setError('网络错误');
@@ -191,6 +211,7 @@ export function ProjectManagement() {
     e.preventDefault();
     if (!selectedProject) return;
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request = formDataToRequest(formData);
       const result = await updateProject(selectedProject.id, request);
@@ -199,7 +220,10 @@ export function ProjectManagement() {
         setSelectedProject(null);
         fetchProjects();
       } else {
-        setError(result.message || '更新失败');
+        // Try to parse field-level validation errors
+        if (!parseValidationErrors(result as any)) {
+          setError(result.message || '更新失败');
+        }
       }
     } catch (err) {
       setError('网络错误');
@@ -443,6 +467,7 @@ export function ProjectManagement() {
           onSubmit={handleSubmitAdd}
           submitting={submitting}
           categories={categories}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -456,6 +481,7 @@ export function ProjectManagement() {
           onSubmit={handleSubmitEdit}
           submitting={submitting}
           categories={categories}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -612,6 +638,10 @@ function formDataToRequest(formData: ProjectFormData): ProjectRequest {
 }
 
 // Project Modal Component
+interface FieldErrors {
+  [key: string]: string;
+}
+
 interface ProjectModalProps {
   title: string;
   formData: ProjectFormData;
@@ -620,9 +650,10 @@ interface ProjectModalProps {
   onSubmit: (e: React.FormEvent) => void;
   submitting: boolean;
   categories: ProjectCategoryResponse[];
+  fieldErrors?: FieldErrors;
 }
 
-function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitting, categories }: ProjectModalProps) {
+function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitting, categories, fieldErrors = {} }: ProjectModalProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -772,11 +803,24 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                     type="text"
                     name="title"
                     required
+                    maxLength={200}
                     value={formData.title}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      fieldErrors.title ? 'border-red-500' : formData.title.length > 200 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入项目名称"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.title ? (
+                      <span className="text-xs text-red-500">{fieldErrors.title}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${formData.title.length > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.title.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -802,11 +846,24 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                     <input
                       type="text"
                       name="location"
+                      maxLength={200}
                       value={formData.location}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                        fieldErrors.location ? 'border-red-500' : formData.location.length > 200 ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="请输入项目地点"
                     />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.location ? (
+                      <span className="text-xs text-red-500">{fieldErrors.location}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${formData.location.length > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.location.length}/200
+                    </span>
                   </div>
                 </div>
 
@@ -829,11 +886,24 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                   <input
                     type="text"
                     name="owner"
+                    maxLength={200}
                     value={formData.owner}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      fieldErrors.owner ? 'border-red-500' : formData.owner.length > 200 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入建设单位"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.owner ? (
+                      <span className="text-xs text-red-500">{fieldErrors.owner}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${formData.owner.length > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.owner.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -841,11 +911,24 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                   <input
                     type="text"
                     name="designer"
+                    maxLength={200}
                     value={formData.designer}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      fieldErrors.designer ? 'border-red-500' : formData.designer.length > 200 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入设计单位"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.designer ? (
+                      <span className="text-xs text-red-500">{fieldErrors.designer}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${formData.designer.length > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.designer.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -853,11 +936,24 @@ function ProjectModal({ title, formData, setFormData, onClose, onSubmit, submitt
                   <input
                     type="text"
                     name="contractor"
+                    maxLength={200}
                     value={formData.contractor}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      fieldErrors.contractor ? 'border-red-500' : formData.contractor.length > 200 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入施工单位"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.contractor ? (
+                      <span className="text-xs text-red-500">{fieldErrors.contractor}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${formData.contractor.length > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.contractor.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
