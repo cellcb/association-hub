@@ -58,6 +58,7 @@ export function ActivityManagement() {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState<ActivityFormData>(initialFormData);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Load activities
   const loadActivities = useCallback(async () => {
@@ -128,6 +129,7 @@ export function ActivityManagement() {
 
   const handleAdd = () => {
     setFormData(initialFormData);
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -146,6 +148,7 @@ export function ActivityManagement() {
 
   const handleEdit = async (activity: ActivityListResponse) => {
     setSelectedActivity(activity);
+    setFieldErrors({});
     try {
       const result = await getActivityById(activity.id);
       if (result.success && result.data) {
@@ -193,6 +196,7 @@ export function ActivityManagement() {
 
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     try {
       const request = formDataToRequest(formData);
       const result = await createActivity(request);
@@ -200,7 +204,12 @@ export function ActivityManagement() {
         setShowAddModal(false);
         loadActivities();
       } else {
-        alert(result.message || '创建失败');
+        // Parse validation errors from backend
+        if (result.data && typeof result.data === 'object') {
+          setFieldErrors(result.data as Record<string, string>);
+        } else {
+          alert(result.message || '创建失败');
+        }
       }
     } catch (error) {
       console.error('Failed to create activity', error);
@@ -211,6 +220,7 @@ export function ActivityManagement() {
   const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedActivity) return;
+    setFieldErrors({});
     try {
       const request = formDataToRequest(formData);
       const result = await updateActivity(selectedActivity.id, request);
@@ -219,7 +229,12 @@ export function ActivityManagement() {
         setSelectedActivity(null);
         loadActivities();
       } else {
-        alert(result.message || '更新失败');
+        // Parse validation errors from backend
+        if (result.data && typeof result.data === 'object') {
+          setFieldErrors(result.data as Record<string, string>);
+        } else {
+          alert(result.message || '更新失败');
+        }
       }
     } catch (error) {
       console.error('Failed to update activity', error);
@@ -511,6 +526,7 @@ export function ActivityManagement() {
         <ActivityModal
           title="创建活动"
           formData={formData}
+          fieldErrors={fieldErrors}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleSubmitAdd}
           onFormChange={handleFormChange}
@@ -522,6 +538,7 @@ export function ActivityManagement() {
         <ActivityModal
           title="编辑活动"
           formData={formData}
+          fieldErrors={fieldErrors}
           onClose={() => setShowEditModal(false)}
           onSubmit={handleSubmitEdit}
           onFormChange={handleFormChange}
@@ -736,12 +753,13 @@ function AgendaEditor({ days, onChange }: AgendaEditorProps) {
 interface ActivityModalProps {
   title: string;
   formData: ActivityFormData;
+  fieldErrors: Record<string, string>;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => void;
 }
 
-function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: ActivityModalProps) {
+function ActivityModal({ title, formData, fieldErrors, onClose, onSubmit, onFormChange }: ActivityModalProps) {
   // Rich text editor configuration
   const modules = {
     toolbar: [
@@ -802,11 +820,20 @@ function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: Act
                     type="text"
                     name="title"
                     required
+                    maxLength={200}
                     value={formData.title}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${fieldErrors.title ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入活动名称"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.title ? (
+                      <span className="text-xs text-red-500">{fieldErrors.title}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className="text-xs text-gray-400">{formData.title.length}/200</span>
+                  </div>
                 </div>
 
                 <div>
@@ -898,11 +925,20 @@ function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: Act
                   <input
                     type="text"
                     name="location"
+                    maxLength={200}
                     value={formData.location}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${fieldErrors.location ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入活动地点"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.location ? (
+                      <span className="text-xs text-red-500">{fieldErrors.location}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className="text-xs text-gray-400">{formData.location.length}/200</span>
+                  </div>
                 </div>
 
                 <div>
@@ -1020,11 +1056,20 @@ function ActivityModal({ title, formData, onClose, onSubmit, onFormChange }: Act
                   <input
                     type="text"
                     name="organization"
+                    maxLength={200}
                     value={formData.organization}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${fieldErrors.organization ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入主办单位"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.organization ? (
+                      <span className="text-xs text-red-500">{fieldErrors.organization}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className="text-xs text-gray-400">{formData.organization.length}/200</span>
+                  </div>
                 </div>
 
                 <div>
