@@ -130,6 +130,7 @@ export function ManufacturerManagement() {
   const [categories, setCategories] = useState<ManufacturerCategoryResponse[]>([]);
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // 加载分类列表
   useEffect(() => {
@@ -194,6 +195,7 @@ export function ManufacturerManagement() {
 
   const handleAdd = () => {
     setFormData(emptyFormData);
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -231,6 +233,7 @@ export function ManufacturerManagement() {
         status: m.status,
         featured: m.featured,
       });
+      setFieldErrors({});
       setShowEditModal(true);
     }
   };
@@ -264,6 +267,7 @@ export function ManufacturerManagement() {
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request: ManufacturerRequest = {
         name: formData.name,
@@ -290,6 +294,11 @@ export function ManufacturerManagement() {
       if (result.success) {
         setShowAddModal(false);
         loadManufacturers();
+      } else {
+        // Check if data contains field-level validation errors
+        if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+          setFieldErrors(result.data as Record<string, string>);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -300,6 +309,7 @@ export function ManufacturerManagement() {
     e.preventDefault();
     if (!selectedManufacturer) return;
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request: ManufacturerRequest = {
         name: formData.name,
@@ -327,6 +337,11 @@ export function ManufacturerManagement() {
         setShowEditModal(false);
         setSelectedManufacturer(null);
         loadManufacturers();
+      } else {
+        // Check if data contains field-level validation errors
+        if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+          setFieldErrors(result.data as Record<string, string>);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -566,6 +581,7 @@ export function ManufacturerManagement() {
           onSubmit={handleSubmitAdd}
           onFormChange={handleFormChange}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -579,6 +595,7 @@ export function ManufacturerManagement() {
           onSubmit={handleSubmitEdit}
           onFormChange={handleFormChange}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -655,9 +672,10 @@ interface ManufacturerModalProps {
   onSubmit: (e: React.FormEvent) => void;
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => void;
   submitting: boolean;
+  fieldErrors?: Record<string, string>;
 }
 
-function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onFormChange, submitting }: ManufacturerModalProps) {
+function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onFormChange, submitting, fieldErrors = {} }: ManufacturerModalProps) {
   // Rich text editor configuration
   const modules = useMemo(() => ({
     toolbar: [
@@ -761,6 +779,18 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
         {/* Content */}
         <div className="p-6 md:p-8 max-h-[70vh] overflow-y-auto">
           <form onSubmit={onSubmit} className="space-y-6">
+            {/* Error Summary */}
+            {Object.keys(fieldErrors).length > 0 && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="text-sm font-medium text-red-800 mb-2">请修正以下错误：</h4>
+                <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                  {Object.entries(fieldErrors).map(([field, error]) => (
+                    <li key={field}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Basic Info */}
             <div>
               <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
@@ -774,11 +804,13 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     type="text"
                     name="name"
                     required
+                    maxLength={255}
                     value={formData.name || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入厂商名称"
                   />
+                  {fieldErrors.name && <p className="mt-1 text-sm text-red-500">{fieldErrors.name}</p>}
                 </div>
 
                 <div>
@@ -843,11 +875,13 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                   <input
                     type="text"
                     name="contactPerson"
+                    maxLength={100}
                     value={formData.contactPerson || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.contactPerson ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入联系人"
                   />
+                  {fieldErrors.contactPerson && <p className="mt-1 text-sm text-red-500">{fieldErrors.contactPerson}</p>}
                 </div>
 
                 <div>
@@ -855,11 +889,13 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                   <input
                     type="tel"
                     name="contactPhone"
+                    maxLength={50}
                     value={formData.contactPhone || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.contactPhone ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入联系电话"
                   />
+                  {fieldErrors.contactPhone && <p className="mt-1 text-sm text-red-500">{fieldErrors.contactPhone}</p>}
                 </div>
 
                 <div>
@@ -867,11 +903,13 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                   <input
                     type="email"
                     name="contactEmail"
+                    maxLength={100}
                     value={formData.contactEmail || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.contactEmail ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入联系邮箱"
                   />
+                  {fieldErrors.contactEmail && <p className="mt-1 text-sm text-red-500">{fieldErrors.contactEmail}</p>}
                 </div>
 
                 <div className="md:col-span-2">
@@ -881,12 +919,14 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     <input
                       type="text"
                       name="address"
+                      maxLength={500}
                       value={formData.address || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.address ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="请输入企业地址"
                     />
                   </div>
+                  {fieldErrors.address && <p className="mt-1 text-sm text-red-500">{fieldErrors.address}</p>}
                 </div>
 
                 <div>
@@ -896,12 +936,14 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     <input
                       type="text"
                       name="website"
+                      maxLength={255}
                       value={formData.website || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.website ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="https://"
                     />
                   </div>
+                  {fieldErrors.website && <p className="mt-1 text-sm text-red-500">{fieldErrors.website}</p>}
                 </div>
               </div>
             </div>
@@ -932,11 +974,13 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                   <input
                     type="text"
                     name="registeredCapital"
+                    maxLength={100}
                     value={formData.registeredCapital || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.registeredCapital ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="如: 1000万元"
                   />
+                  {fieldErrors.registeredCapital && <p className="mt-1 text-sm text-red-500">{fieldErrors.registeredCapital}</p>}
                 </div>
 
                 <div>
@@ -946,12 +990,14 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     <input
                       type="text"
                       name="employeeScale"
+                      maxLength={50}
                       value={formData.employeeScale || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.employeeScale ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="如: 100-500人"
                     />
                   </div>
+                  {fieldErrors.employeeScale && <p className="mt-1 text-sm text-red-500">{fieldErrors.employeeScale}</p>}
                 </div>
               </div>
 
@@ -1077,11 +1123,12 @@ function ManufacturerModal({ title, formData, categories, onClose, onSubmit, onF
                     required
                     value={formData.status}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.status ? 'border-red-500' : 'border-gray-300'}`}
                   >
                     <option value={0}>草稿</option>
                     <option value={1}>已发布</option>
                   </select>
+                  {fieldErrors.status && <p className="mt-1 text-sm text-red-500">{fieldErrors.status}</p>}
                 </div>
 
                 <div className="flex items-center">

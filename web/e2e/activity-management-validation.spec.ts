@@ -1,13 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
+import { login, navigateToAdminSection, generateString } from './helpers';
 
 /**
  * E2E tests for Activity Management form validation
  * Tests character limits, character counters, and inline error display
  */
-
-// Test credentials
-const TEST_USER = 'admin';
-const TEST_PASSWORD = '123456';
 
 // Field limits matching backend @Size annotations
 const FIELD_LIMITS = {
@@ -16,58 +13,15 @@ const FIELD_LIMITS = {
   organization: 200,
 };
 
-// Helper function to login
-async function login(page: Page) {
-  await page.goto('/');
-
-  // Click login button to open login modal
-  const loginButton = page.locator('button:has-text("登录")').first();
-  if (await loginButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await loginButton.click();
-
-    // Wait for login modal to appear
-    await page.waitForSelector('input[type="password"]', { timeout: 5000 });
-
-    // Fill credentials
-    await page.fill('input[name="username"], input[placeholder*="用户名"], input[type="text"]', TEST_USER);
-    await page.fill('input[name="password"], input[type="password"]', TEST_PASSWORD);
-
-    // Submit login (click the submit button in modal, not the nav button)
-    await page.locator('button[type="submit"]:has-text("登录"), form button:has-text("登录")').click();
-
-    // Wait for login to complete
-    await page.waitForURL(/.*admin.*|.*dashboard.*/i, { timeout: 10000 }).catch(() => {});
-    await page.waitForTimeout(1000);
-  }
-}
-
 // Helper function to navigate to activity management
 async function navigateToActivityManagement(page: Page) {
-  // First, enter admin mode by clicking "管理后台"
-  const adminButton = page.locator('button:has-text("管理后台")').first();
-  if (await adminButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await adminButton.click();
-    await page.waitForTimeout(500);
-  }
-
-  // Then click "活动管理" in the sidebar
-  const activityLink = page.locator('button:has-text("活动管理"), a:has-text("活动管理")').first();
-  await activityLink.waitFor({ state: 'visible', timeout: 10000 });
-  await activityLink.click();
-
-  // Wait for the page to load
-  await page.waitForSelector('text=创建活动', { timeout: 10000 });
+  await navigateToAdminSection(page, '活动管理', '创建活动');
 }
 
 // Helper function to open create activity modal
 async function openCreateActivityModal(page: Page) {
   await page.click('button:has-text("创建活动")');
   await page.waitForSelector('text=填写活动详细信息', { timeout: 5000 });
-}
-
-// Generate string of specified length
-function generateString(length: number, char: string = 'a'): string {
-  return char.repeat(length);
 }
 
 test.describe('Activity Management Form Validation', () => {

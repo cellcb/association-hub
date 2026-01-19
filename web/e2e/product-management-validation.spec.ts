@@ -1,13 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
+import { login, navigateToAdminSection, generateString } from './helpers';
 
 /**
  * E2E tests for Product Management form validation
  * Tests character limits, character counters, and inline error display
  */
-
-// Test credentials
-const TEST_USER = 'admin';
-const TEST_PASSWORD = '123456';
 
 // Field limits matching backend @Size annotations
 const PRODUCT_FIELD_LIMITS = {
@@ -28,65 +25,14 @@ const CATEGORY_FIELD_LIMITS = {
   description: 500,
 };
 
-// Helper function to login
-async function login(page: Page) {
-  await page.goto('/');
-
-  // Click login button to open login modal
-  const loginButton = page.locator('button:has-text("登录")').first();
-  if (await loginButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await loginButton.click();
-
-    // Wait for login modal to appear
-    await page.waitForSelector('input[type="password"]', { timeout: 5000 });
-
-    // Fill credentials
-    await page.fill('input[name="username"], input[placeholder*="用户名"], input[type="text"]', TEST_USER);
-    await page.fill('input[name="password"], input[type="password"]', TEST_PASSWORD);
-
-    // Submit login
-    await page.locator('button[type="submit"]:has-text("登录"), form button:has-text("登录")').click();
-
-    // Wait for login to complete
-    await page.waitForURL(/.*admin.*|.*dashboard.*/i, { timeout: 10000 }).catch(() => {});
-    await page.waitForTimeout(1000);
-  }
-}
-
 // Helper function to navigate to product management
 async function navigateToProductManagement(page: Page) {
-  // First, enter admin mode by clicking "管理后台"
-  const adminButton = page.locator('button:has-text("管理后台")').first();
-  if (await adminButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await adminButton.click();
-    await page.waitForTimeout(500);
-  }
-
-  // Then click "产品管理" in the sidebar
-  const productLink = page.locator('button:has-text("产品管理"), a:has-text("产品管理")').first();
-  await productLink.waitFor({ state: 'visible', timeout: 10000 });
-  await productLink.click();
-
-  // Wait for the page to load
-  await page.waitForSelector('text=添加产品', { timeout: 10000 });
+  await navigateToAdminSection(page, '产品管理', '添加产品');
 }
 
 // Helper function to navigate to product category management
 async function navigateToProductCategoryManagement(page: Page) {
-  // First, enter admin mode by clicking "管理后台"
-  const adminButton = page.locator('button:has-text("管理后台")').first();
-  if (await adminButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await adminButton.click();
-    await page.waitForTimeout(500);
-  }
-
-  // Then click "产品分类" in the sidebar
-  const categoryLink = page.locator('button:has-text("产品分类"), a:has-text("产品分类")').first();
-  await categoryLink.waitFor({ state: 'visible', timeout: 10000 });
-  await categoryLink.click();
-
-  // Wait for the page to load
-  await page.waitForSelector('text=新增分类', { timeout: 10000 });
+  await navigateToAdminSection(page, '产品分类', '新增分类');
 }
 
 // Helper function to open create product modal
@@ -99,11 +45,6 @@ async function openCreateProductModal(page: Page) {
 async function openCreateCategoryModal(page: Page) {
   await page.click('button:has-text("新增分类")');
   await page.waitForSelector('text=新增分类', { timeout: 5000 });
-}
-
-// Generate string of specified length
-function generateString(length: number, char: string = 'a'): string {
-  return char.repeat(length);
 }
 
 test.describe('Product Management Form Validation', () => {
