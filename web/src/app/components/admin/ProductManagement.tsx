@@ -98,6 +98,20 @@ export function ProductManagement() {
   const [categories, setCategories] = useState<ProductCategoryResponse[]>([]);
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  // Parse validation errors from backend response
+  const parseValidationErrors = (result: { fieldErrors?: Record<string, string>; errors?: Record<string, string> }) => {
+    if (result.fieldErrors) {
+      setFieldErrors(result.fieldErrors);
+      return true;
+    }
+    if (result.errors) {
+      setFieldErrors(result.errors);
+      return true;
+    }
+    return false;
+  };
 
   // 加载分类列表
   useEffect(() => {
@@ -162,6 +176,7 @@ export function ProductManagement() {
 
   const handleAdd = () => {
     setFormData(emptyFormData);
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -178,6 +193,7 @@ export function ProductManagement() {
     if (result.success && result.data) {
       const p = result.data;
       setSelectedProduct(p);
+      setFieldErrors({});
       setFormData({
         name: p.name,
         categoryId: p.category?.id,
@@ -239,6 +255,7 @@ export function ProductManagement() {
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request: ProductRequest = {
         name: formData.name,
@@ -264,6 +281,8 @@ export function ProductManagement() {
       if (result.success) {
         setShowAddModal(false);
         loadProducts();
+      } else {
+        parseValidationErrors(result as { fieldErrors?: Record<string, string>; errors?: Record<string, string> });
       }
     } finally {
       setSubmitting(false);
@@ -274,6 +293,7 @@ export function ProductManagement() {
     e.preventDefault();
     if (!selectedProduct) return;
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const request: ProductRequest = {
         name: formData.name,
@@ -300,6 +320,8 @@ export function ProductManagement() {
         setShowEditModal(false);
         setSelectedProduct(null);
         loadProducts();
+      } else {
+        parseValidationErrors(result as { fieldErrors?: Record<string, string>; errors?: Record<string, string> });
       }
     } finally {
       setSubmitting(false);
@@ -538,6 +560,7 @@ export function ProductManagement() {
           onFormChange={handleFormChange}
           onCertificationsChange={handleCertificationsChange}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -552,6 +575,7 @@ export function ProductManagement() {
           onFormChange={handleFormChange}
           onCertificationsChange={handleCertificationsChange}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -619,6 +643,9 @@ export function ProductManagement() {
   );
 }
 
+// Field errors type
+type FieldErrors = {[key: string]: string};
+
 // Product Modal Component
 interface ProductModalProps {
   title: string;
@@ -629,9 +656,10 @@ interface ProductModalProps {
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => void;
   onCertificationsChange: (value: string) => void;
   submitting: boolean;
+  fieldErrors?: FieldErrors;
 }
 
-function ProductModal({ title, formData, categories, onClose, onSubmit, onFormChange, onCertificationsChange, submitting }: ProductModalProps) {
+function ProductModal({ title, formData, categories, onClose, onSubmit, onFormChange, onCertificationsChange, submitting, fieldErrors = {} }: ProductModalProps) {
   // Rich text editor configuration - use useMemo to prevent re-creation
   const modules = useMemo(() => ({
     toolbar: [
@@ -730,11 +758,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                     type="text"
                     name="name"
                     required
+                    maxLength={255}
                     value={formData.name || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.name ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入产品名称"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.name ? (
+                      <span className="text-xs text-red-500">{fieldErrors.name}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.name?.length || 0}/255</span>
+                  </div>
                 </div>
 
                 <div>
@@ -757,11 +794,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <input
                     type="text"
                     name="model"
+                    maxLength={100}
                     value={formData.model || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.model ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入产品型号"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.model ? (
+                      <span className="text-xs text-red-500">{fieldErrors.model}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.model?.length || 0}/100</span>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -771,11 +817,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                     <input
                       type="text"
                       name="manufacturer"
+                      maxLength={255}
                       value={formData.manufacturer || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                        fieldErrors.manufacturer ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="请输入生产厂商"
                     />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.manufacturer ? (
+                      <span className="text-xs text-red-500">{fieldErrors.manufacturer}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.manufacturer?.length || 0}/255</span>
                   </div>
                 </div>
 
@@ -786,11 +841,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                     <input
                       type="text"
                       name="price"
+                      maxLength={100}
                       value={formData.price || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                        fieldErrors.price ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="如：¥50,000 或 面议"
                     />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.price ? (
+                      <span className="text-xs text-red-500">{fieldErrors.price}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.price?.length || 0}/100</span>
                   </div>
                 </div>
 
@@ -799,11 +863,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <textarea
                     name="summary"
                     rows={2}
+                    maxLength={500}
                     value={formData.summary || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.summary ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入产品摘要（一句话介绍）"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.summary ? (
+                      <span className="text-xs text-red-500">{fieldErrors.summary}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.summary?.length || 0}/500</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -958,11 +1031,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <input
                     type="text"
                     name="contact"
+                    maxLength={100}
                     value={formData.contact || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.contact ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入联系人"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.contact ? (
+                      <span className="text-xs text-red-500">{fieldErrors.contact}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.contact?.length || 0}/100</span>
+                  </div>
                 </div>
 
                 <div>
@@ -970,11 +1052,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <input
                     type="tel"
                     name="contactPhone"
+                    maxLength={20}
                     value={formData.contactPhone || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.contactPhone ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入联系电话"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.contactPhone ? (
+                      <span className="text-xs text-red-500">{fieldErrors.contactPhone}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.contactPhone?.length || 0}/20</span>
+                  </div>
                 </div>
 
                 <div>
@@ -982,11 +1073,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <input
                     type="email"
                     name="contactEmail"
+                    maxLength={100}
                     value={formData.contactEmail || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.contactEmail ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入联系邮箱"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.contactEmail ? (
+                      <span className="text-xs text-red-500">{fieldErrors.contactEmail}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.contactEmail?.length || 0}/100</span>
+                  </div>
                 </div>
 
                 <div>
@@ -994,11 +1094,20 @@ function ProductModal({ title, formData, categories, onClose, onSubmit, onFormCh
                   <input
                     type="text"
                     name="website"
+                    maxLength={255}
                     value={formData.website || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                      fieldErrors.website ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入官方网站"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.website ? (
+                      <span className="text-xs text-red-500">{fieldErrors.website}</span>
+                    ) : <span />}
+                    <span className="text-xs text-gray-400">{formData.website?.length || 0}/255</span>
+                  </div>
                 </div>
               </div>
             </div>

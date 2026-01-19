@@ -39,6 +39,20 @@ export function ProductCategoryManagement() {
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  // Parse validation errors from backend response
+  const parseValidationErrors = (result: { fieldErrors?: Record<string, string>; errors?: Record<string, string> }) => {
+    if (result.fieldErrors) {
+      setFieldErrors(result.fieldErrors);
+      return true;
+    }
+    if (result.errors) {
+      setFieldErrors(result.errors);
+      return true;
+    }
+    return false;
+  };
 
   const loadCategories = useCallback(async () => {
     setLoading(true);
@@ -59,6 +73,7 @@ export function ProductCategoryManagement() {
   const handleAdd = () => {
     setFormData(emptyFormData);
     setError(null);
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -73,6 +88,7 @@ export function ProductCategoryManagement() {
       description: category.description || '',
     });
     setError(null);
+    setFieldErrors({});
     setShowEditModal(true);
   };
 
@@ -84,12 +100,13 @@ export function ProductCategoryManagement() {
 
   const handleSubmitAdd = async () => {
     if (!formData.name.trim()) {
-      setError('分类名称不能为空');
+      setFieldErrors({ name: '分类名称不能为空' });
       return;
     }
 
     setSubmitting(true);
     setError(null);
+    setFieldErrors({});
     try {
       const request: ProductCategoryRequest = {
         name: formData.name,
@@ -104,7 +121,9 @@ export function ProductCategoryManagement() {
         setShowAddModal(false);
         loadCategories();
       } else {
-        setError(result.message || '创建失败');
+        if (!parseValidationErrors(result as { fieldErrors?: Record<string, string>; errors?: Record<string, string> })) {
+          setError(result.message || '创建失败');
+        }
       }
     } catch (e) {
       setError('创建失败');
@@ -116,12 +135,13 @@ export function ProductCategoryManagement() {
   const handleSubmitEdit = async () => {
     if (!selectedCategory) return;
     if (!formData.name.trim()) {
-      setError('分类名称不能为空');
+      setFieldErrors({ name: '分类名称不能为空' });
       return;
     }
 
     setSubmitting(true);
     setError(null);
+    setFieldErrors({});
     try {
       const request: ProductCategoryRequest = {
         name: formData.name,
@@ -136,7 +156,9 @@ export function ProductCategoryManagement() {
         setShowEditModal(false);
         loadCategories();
       } else {
-        setError(result.message || '更新失败');
+        if (!parseValidationErrors(result as { fieldErrors?: Record<string, string>; errors?: Record<string, string> })) {
+          setError(result.message || '更新失败');
+        }
       }
     } catch (e) {
       setError('更新失败');
@@ -222,11 +244,20 @@ export function ProductCategoryManagement() {
               </label>
               <input
                 type="text"
+                maxLength={100}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  fieldErrors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="请输入分类名称"
               />
+              <div className="flex justify-between mt-1">
+                {fieldErrors.name ? (
+                  <span className="text-xs text-red-500">{fieldErrors.name}</span>
+                ) : <span />}
+                <span className="text-xs text-gray-400">{formData.name?.length || 0}/100</span>
+              </div>
             </div>
 
             <div>
@@ -235,11 +266,20 @@ export function ProductCategoryManagement() {
               </label>
               <input
                 type="text"
+                maxLength={50}
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="留空将自动生成"
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  fieldErrors.code ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="大写字母、数字和下划线，留空将自动生成"
               />
+              <div className="flex justify-between mt-1">
+                {fieldErrors.code ? (
+                  <span className="text-xs text-red-500">{fieldErrors.code}</span>
+                ) : <span />}
+                <span className="text-xs text-gray-400">{formData.code?.length || 0}/50</span>
+              </div>
             </div>
 
             {/* 暂时禁用父分类选择，只保持一级分类
@@ -296,12 +336,21 @@ export function ProductCategoryManagement() {
                 描述
               </label>
               <textarea
+                maxLength={500}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                  fieldErrors.description ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="请输入分类描述"
               />
+              <div className="flex justify-between mt-1">
+                {fieldErrors.description ? (
+                  <span className="text-xs text-red-500">{fieldErrors.description}</span>
+                ) : <span />}
+                <span className="text-xs text-gray-400">{formData.description?.length || 0}/500</span>
+              </div>
             </div>
           </div>
 
