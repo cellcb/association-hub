@@ -149,6 +149,9 @@ export function ExpertManagement() {
   // Form data
   const [formData, setFormData] = useState<ExpertFormData>(createEmptyFormData());
 
+  // Field validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   // Load expertise fields
   const loadExpertiseFields = useCallback(async () => {
     const result = await getExpertiseFields();
@@ -224,6 +227,7 @@ export function ExpertManagement() {
 
   const handleAdd = () => {
     setFormData(createEmptyFormData());
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -242,6 +246,7 @@ export function ExpertManagement() {
     if (result.success && result.data) {
       setSelectedExpert(result.data);
       setFormData(responseToFormData(result.data));
+      setFieldErrors({});
       setShowEditModal(true);
     } else {
       alert('加载专家详情失败');
@@ -259,13 +264,17 @@ export function ExpertManagement() {
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const result = await createExpert(formDataToRequest(formData));
       if (result.success) {
         setShowAddModal(false);
         loadExperts();
       } else {
-        alert(result.message || '创建失败');
+        // Check if data contains field-level validation errors
+        if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+          setFieldErrors(result.data as Record<string, string>);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -276,6 +285,7 @@ export function ExpertManagement() {
     e.preventDefault();
     if (!selectedExpert) return;
     setSubmitting(true);
+    setFieldErrors({});
     try {
       const result = await updateExpert(selectedExpert.id, formDataToRequest(formData));
       if (result.success) {
@@ -283,7 +293,10 @@ export function ExpertManagement() {
         setSelectedExpert(null);
         loadExperts();
       } else {
-        alert(result.message || '更新失败');
+        // Check if data contains field-level validation errors
+        if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+          setFieldErrors(result.data as Record<string, string>);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -513,6 +526,7 @@ export function ExpertManagement() {
           onClose={() => setShowAddModal(false)}
           onSubmit={handleSubmitAdd}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -526,6 +540,7 @@ export function ExpertManagement() {
           onClose={() => setShowEditModal(false)}
           onSubmit={handleSubmitEdit}
           submitting={submitting}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -643,9 +658,10 @@ interface ExpertModalProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   submitting: boolean;
+  fieldErrors?: Record<string, string>;
 }
 
-function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, onSubmit, submitting }: ExpertModalProps) {
+function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, onSubmit, submitting, fieldErrors = {} }: ExpertModalProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -733,6 +749,17 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
         {/* Content */}
         <div className="p-6 md:p-8 max-h-[70vh] overflow-y-auto">
           <form onSubmit={onSubmit} className="space-y-8">
+            {/* Error Summary */}
+            {Object.keys(fieldErrors).length > 0 && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="text-sm font-medium text-red-800 mb-2">请修正以下错误：</h4>
+                <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                  {Object.entries(fieldErrors).map(([field, error]) => (
+                    <li key={field}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {/* Basic Info */}
             <div>
               <h3 className="text-lg text-gray-900 mb-4 flex items-center gap-2">
@@ -746,11 +773,13 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                     type="text"
                     name="name"
                     required
+                    maxLength={50}
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="请输入专家姓名"
                   />
+                  {fieldErrors.name && <p className="mt-1 text-sm text-red-500">{fieldErrors.name}</p>}
                 </div>
 
                 <div>
@@ -758,11 +787,13 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                   <input
                     type="text"
                     name="title"
+                    maxLength={100}
                     value={formData.title}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.title ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="如：教授级高级工程师"
                   />
+                  {fieldErrors.title && <p className="mt-1 text-sm text-red-500">{fieldErrors.title}</p>}
                 </div>
 
                 <div className="md:col-span-2">
@@ -772,12 +803,14 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                     <input
                       type="text"
                       name="organization"
+                      maxLength={200}
                       value={formData.organization}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.organization ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="请输入所在单位"
                     />
                   </div>
+                  {fieldErrors.organization && <p className="mt-1 text-sm text-red-500">{fieldErrors.organization}</p>}
                 </div>
 
                 <div>
@@ -787,12 +820,14 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                     <input
                       type="text"
                       name="location"
+                      maxLength={100}
                       value={formData.location}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.location ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="如：北京"
                     />
                   </div>
+                  {fieldErrors.location && <p className="mt-1 text-sm text-red-500">{fieldErrors.location}</p>}
                 </div>
 
                 <div>
@@ -802,12 +837,14 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                     <input
                       type="tel"
                       name="phone"
+                      maxLength={20}
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.phone ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="请输入手机号码"
                     />
                   </div>
+                  {fieldErrors.phone && <p className="mt-1 text-sm text-red-500">{fieldErrors.phone}</p>}
                 </div>
 
                 <div>
@@ -817,12 +854,14 @@ function ExpertModal({ title, formData, setFormData, expertiseFields, onClose, o
                     <input
                       type="email"
                       name="email"
+                      maxLength={100}
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.email ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="请输入邮箱地址"
                     />
                   </div>
+                  {fieldErrors.email && <p className="mt-1 text-sm text-red-500">{fieldErrors.email}</p>}
                 </div>
 
                 <div>
