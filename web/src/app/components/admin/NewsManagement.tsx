@@ -67,6 +67,7 @@ export function NewsManagement() {
     tagIds: [],
     featured: false,
   });
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   // 状态映射
   const statusMap: Record<string, number | undefined> = {
@@ -172,6 +173,7 @@ export function NewsManagement() {
       tagIds: [],
       featured: false,
     });
+    setFieldErrors({});
     setShowAddModal(true);
   };
 
@@ -189,6 +191,7 @@ export function NewsManagement() {
 
   const handleEdit = async (news: NewsListResponse) => {
     setSelectedNews(news);
+    setFieldErrors({});
     setShowEditModal(true);
 
     // 从详情 API 获取完整内容（包括 content 中的 Base64 图片）
@@ -238,6 +241,19 @@ export function NewsManagement() {
     }));
   };
 
+  // Parse validation errors from backend response
+  const parseValidationErrors = (result: { fieldErrors?: Record<string, string>; errors?: Record<string, string> }) => {
+    if (result.fieldErrors) {
+      setFieldErrors(result.fieldErrors);
+      return true;
+    }
+    if (result.errors) {
+      setFieldErrors(result.errors);
+      return true;
+    }
+    return false;
+  };
+
   const handleCreateTag = async (name: string): Promise<boolean> => {
     const trimmedName = name.trim();
     if (!trimmedName) return false;
@@ -270,6 +286,7 @@ export function NewsManagement() {
   const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(-1);
+    setFieldErrors({});
     try {
       const request: NewsRequest = {
         title: formData.title!,
@@ -287,7 +304,10 @@ export function NewsManagement() {
         setShowAddModal(false);
         loadNews();
       } else {
-        alert(result.message || '创建失败');
+        // Try to parse field-level validation errors
+        if (!parseValidationErrors(result as any)) {
+          alert(result.message || '创建失败');
+        }
       }
     } catch {
       alert('网络错误');
@@ -300,6 +320,7 @@ export function NewsManagement() {
     e.preventDefault();
     if (!selectedNews) return;
     setActionLoading(selectedNews.id);
+    setFieldErrors({});
     try {
       const request: NewsRequest = {
         title: formData.title!,
@@ -318,7 +339,10 @@ export function NewsManagement() {
         setSelectedNews(null);
         loadNews();
       } else {
-        alert(result.message || '更新失败');
+        // Try to parse field-level validation errors
+        if (!parseValidationErrors(result as any)) {
+          alert(result.message || '更新失败');
+        }
       }
     } catch {
       alert('网络错误');
@@ -575,6 +599,7 @@ export function NewsManagement() {
           onTagIdsChange={handleTagIdsChange}
           onCreateTag={handleCreateTag}
           loading={actionLoading === -1}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -591,6 +616,7 @@ export function NewsManagement() {
           onTagIdsChange={handleTagIdsChange}
           onCreateTag={handleCreateTag}
           loading={actionLoading === selectedNews.id}
+          fieldErrors={fieldErrors}
         />
       )}
 
@@ -728,8 +754,13 @@ function CoverImageUpload({ value, onChange }: { value: string; onChange: (url: 
   );
 }
 
+// Field Errors Interface
+interface FieldErrors {
+  [key: string]: string;
+}
+
 // News Modal Component
-function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, onFormChange, onTagIdsChange, onCreateTag, loading }: {
+function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, onFormChange, onTagIdsChange, onCreateTag, loading, fieldErrors = {} }: {
   title: string;
   formData: NewsFormData;
   categories: NewsCategoryResponse[];
@@ -740,6 +771,7 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
   onTagIdsChange: (tagIds: number[]) => void;
   onCreateTag: (name: string) => Promise<boolean>;
   loading?: boolean;
+  fieldErrors?: FieldErrors;
 }) {
   const [newTagInput, setNewTagInput] = useState('');
   const [creatingTag, setCreatingTag] = useState(false);
@@ -871,11 +903,24 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
                     type="text"
                     name="title"
                     required
+                    maxLength={200}
                     value={formData.title || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      fieldErrors.title ? 'border-red-500' : (formData.title?.length || 0) > 200 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入新闻标题"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.title ? (
+                      <span className="text-xs text-red-500">{fieldErrors.title}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${(formData.title?.length || 0) > 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.title?.length || 0}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -902,11 +947,24 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
                       type="text"
                       name="author"
                       required
+                      maxLength={50}
                       value={formData.author || ''}
                       onChange={onFormChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                        fieldErrors.author ? 'border-red-500' : (formData.author?.length || 0) > 50 ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="请输入作者"
                     />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.author ? (
+                      <span className="text-xs text-red-500">{fieldErrors.author}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${(formData.author?.length || 0) > 40 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.author?.length || 0}/50
+                    </span>
                   </div>
                 </div>
 
@@ -967,11 +1025,24 @@ function NewsModal({ title, formData, categories, allTags, onClose, onSubmit, on
                     name="excerpt"
                     required
                     rows={2}
+                    maxLength={500}
                     value={formData.excerpt || ''}
                     onChange={onFormChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      fieldErrors.excerpt ? 'border-red-500' : (formData.excerpt?.length || 0) > 500 ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="请输入新闻摘要"
                   />
+                  <div className="flex justify-between mt-1">
+                    {fieldErrors.excerpt ? (
+                      <span className="text-xs text-red-500">{fieldErrors.excerpt}</span>
+                    ) : (
+                      <span></span>
+                    )}
+                    <span className={`text-xs ${(formData.excerpt?.length || 0) > 450 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {formData.excerpt?.length || 0}/500
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
